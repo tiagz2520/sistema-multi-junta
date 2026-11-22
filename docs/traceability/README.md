@@ -1,3 +1,27 @@
-# Trazabilidad
+# Matriz de trazabilidad funcional (SDD)
 
-La matriz relacionará los requisitos de las fuentes con casos de uso, criterios de aceptación, tareas y pruebas. Conserva los identificadores RF y referencia las páginas que describen las reglas sin identificador propio.
+Los identificadores RF corresponden a los documentos originales del proyecto. Las reglas de aceptación se concretan en los `requirements.md` de cada capacidad y se prueban con datos sintéticos sobre PostgreSQL real.
+
+| RF                         | Funcionalidad                                  | Especificación SDD                                                                                                                                 | Implementación                                            | Prueba principal                                                        |
+| -------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------- |
+| RF-01, RF-04, RF-05        | Junta, cuentas y administradores               | [Plataforma](../../.kiro/specs/gestion-plataforma-juntas/requirements.md) e [Identidad](../../.kiro/specs/identidad-y-aislamiento/requirements.md) | `apps/api/src/modules/platform/`                          | `apps/api/test/platform.integration.mjs`, `tests/e2e/platform.test.mjs` |
+| RF-02, RF-07               | Sectores y padrón                              | [Administración](../../.kiro/specs/administracion-comunitaria/requirements.md)                                                                     | `apps/api/src/modules/administration/roster.service.ts`   | `apps/api/test/administration.integration.mjs`                          |
+| RF-08, RF-09               | Asambleas, mingas y asistencias                | [Administración](../../.kiro/specs/administracion-comunitaria/requirements.md)                                                                     | `apps/api/src/modules/administration/activity.service.ts` | `tests/e2e/macro2.test.mjs`                                             |
+| RF-15                      | Multas y tarifas                               | [Finanzas](../../.kiro/specs/finanzas-recursos/requirements.md)                                                                                    | `apps/api/src/modules/finance/finance.service.ts`         | `apps/api/test/finance.integration.mjs`                                 |
+| RF-13, RF-16, RF-20        | Pagos, gastos y comprobantes PDF               | [Finanzas](../../.kiro/specs/finanzas-recursos/requirements.md)                                                                                    | `apps/api/src/modules/finance/`                           | `apps/api/test/finance.integration.mjs`, `tests/e2e/macro2.test.mjs`    |
+| RF-10, RF-11, RF-21, RF-22 | Propiedades, fotografías, inventario y activos | [Recursos](../../.kiro/specs/finanzas-recursos/requirements.md)                                                                                    | `apps/api/src/modules/resources/`                         | `apps/api/test/resources.integration.mjs`                               |
+| RF-25, RF-26, RF-29, RF-33 | Convocatorias, actas, oficios y mensajes       | [Comunicaciones](../../.kiro/specs/comunicaciones/requirements.md)                                                                                 | `apps/api/src/modules/communications/`                    | `apps/api/test/final.integration.mjs`, `tests/e2e/final.test.mjs`       |
+| RF-32                      | Portal del Socio y vínculo seguro con padrón   | [Portal](../../.kiro/specs/portal-socio/requirements.md)                                                                                           | `apps/api/src/modules/communications/portal.service.ts`   | `apps/api/test/final.integration.mjs`, `tests/e2e/final.test.mjs`       |
+| RF-12                      | Horarios semanales por sector                  | [Horarios](../../.kiro/specs/reportes-horarios/requirements.md)                                                                                    | `apps/api/src/modules/schedules/`                         | `apps/api/test/final.integration.mjs`                                   |
+| RF-24                      | Reportes administrativos y financieros         | [Reportes](../../.kiro/specs/reportes-horarios/requirements.md)                                                                                    | `apps/api/src/modules/reports/`                           | `apps/api/test/final.integration.mjs`, `tests/e2e/final.test.mjs`       |
+
+## Cobertura transversal
+
+- Autenticación, cookies HttpOnly, CSRF, caducidad, cambio de ámbito y revocación: `apps/api/test/auth.integration.mjs`.
+- Permisos PostgreSQL y rechazo de referencias inter-junta: `apps/api/test/postgres.integration.mjs` y `apps/api/test/identity.integration.mjs`.
+- Titularidad personal entre dos Socios de una misma junta y prohibición de acceder a otra: `apps/api/test/final.integration.mjs`.
+- Interfaz integrada: Playwright Chromium en `tests/e2e/platform.test.mjs`, `macro2.test.mjs` y `final.test.mjs`.
+
+## Alcance pendiente o restringido
+
+No se implementa facturación tributaria SRI, reintegros automáticos, pagos parciales de obligaciones, integración externa de mensajería, recuperación automática de credenciales ni despliegue público administrado. No debe declararse ninguno de estos casos como requisito resuelto por el software. La geolocalización usa una cuadrícula local en este corte.

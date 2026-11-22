@@ -1,0 +1,12 @@
+# Diseño de comunicaciones
+
+Base `/api/v1/juntas/:juntaId/comunicaciones`. RLS forzada por junta y destinatario. Las FK de actividad, membresía y documento incluyen la junta. La unidad de trabajo obtiene identidad y huella de la sesión validada. Los cambios siguen el bloqueo operativo por junta. Los archivos en PostgreSQL se entregan mediante descarga autenticada y sin caché. Las listas son arreglos.
+
+| Ruta            | Contrato                                                                                                                                                                                                                                                             |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `convocatorias` | GET, POST Secretaría con `{actividadId, asunto, contenido, destinatarios}`. Los destinatarios son UUID de membresías activas de la junta. GET `/:id/pdf` genera PDF interno conservando fecha, hora y lugar al publicar. PATCH `/:id/archivar` conserva historial.   |
+| `destinatarios` | GET de proyección mínima `{id, usuario, rol}` según permiso de convocatoria o mensajería.                                                                                                                                                                            |
+| `documentos`    | GET, POST Secretaría multipart `tipo, titulo, fecha, descripcion, institucion?, archivo`. Tipos ACTA, RESOLUCION, ACUERDO y OFICIO. GET `/:id/archivo` y PATCH `/:id/archivar`. PDF hasta 2 MiB. Los oficios requieren institución y quedan reservados a Secretaría. |
+| `mensajes`      | GET de enviados y recibidos propios. POST `{destinatarioId, texto}` o multipart con los mismos campos y `archivo` PDF opcional. GET `/:id/archivo` si existe.                                                                                                        |
+
+Convocatoria y acta se publican al registrar. El archivo lógico conserva el registro para revisión administrativa. La visibilidad de un mensaje se decide por la membresía exacta de la sesión, incluso para Administradores. El Socio solo puede escribir a Administradores y un Administrador a Socios. Secretaría administra publicaciones. Los destinatarios de convocatorias quedan materializados en la emisión.

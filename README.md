@@ -117,3 +117,29 @@ El script imprime las cuentas de demostración. Abre la web conectada al mismo e
 ### Verificación operativa
 
 Corre `npm run test:db:operations` con las mismas URLs de la base aislada descrita para `test:db:auth`. Compila la web y utiliza `npm run test:e2e:operations` con Chromium de Playwright para recorrer el padrón, la minga, la justificación, la multa, el pago, el PDF y el inventario.
+
+## Comunicaciones, Portal del Socio, Horarios y Reportes (Macroincremento 3)
+
+Una vez integradas las migraciones del Portal, Comunicaciones y Horarios, vuelve a compilar e iniciar web y API. Estas capacidades se activan por ámbito y rol en el menú de la junta:
+
+- **Secretaría** publica convocatorias asociadas a actividades, carga actas, resoluciones, acuerdos y oficios PDF, registra horarios y genera reportes administrativos.
+- **Administrador** crea servicios semanales, gestiona invitaciones del padrón, intercambia mensajes privados con Socios y consulta sus reportes autorizados.
+- **Socio** confirma un código de vinculación de un solo uso desde **Mi portal** y puede consultar su ficha propia, asistencias, obligaciones, pagos, comprobantes, convocatorias recibidas, mensajes y horarios de su sector.
+- **Tesorería** consulta reportes financieros y patrimoniales y accede a convocatorias y documentos públicos internos autorizados.
+
+La vinculación del padrón **no se deduce de la cédula**: el Administrador genera una invitación para una membresía Socio activa o una nueva cuenta, verifica al destinatario fuera del sistema y entrega el código por un canal privado. La membresía invitada confirma con su propia sesión. La revocación invalida su acceso. Las descargas verifican el contexto y la titularidad.
+
+Los documentos y mensajes admiten únicamente PDF de hasta 2 MiB; las convocatorias se publican dentro de la aplicación, sin pasarelas externas. Los horarios tienen una franja semanal, un sector y una vigencia; se rechazan solapamientos. Los reportes aplican filtros y pueden descargarse en CSV o PDF. El resumen financiero excluye pagos y gastos anulados y distingue las obligaciones que requieren revisión.
+
+Para validar estas capacidades con una base PostgreSQL **aislada** de pruebas, configura las mismas variables de la sección de integración y ejecuta:
+
+```sh
+npm run test:db:operations
+npm run test:e2e:final
+```
+
+La suite nueva de integración se encuentra en `apps/api/test/final.integration.mjs`. La regresión completa incluye también `test:e2e:platform` y `test:e2e:operations`. Las pruebas con Chromium requieren instalar Playwright como se explica anteriormente.
+
+Consulta la [guía de presentación](docs/guia-demostracion.md), la [arquitectura](docs/architecture/README.md), la [matriz RF y pruebas](docs/traceability/README.md) y las especificaciones [Comunicaciones](.kiro/specs/comunicaciones/requirements.md), [Portal](.kiro/specs/portal-socio/requirements.md) y [Horarios y Reportes](.kiro/specs/reportes-horarios/requirements.md).
+
+**Limitaciones:** no se implementaron pagos parciales de obligaciones, reintegros automáticos, recuperación general de credenciales, cartografía comercial, facturación electrónica SRI ni mensajería externa. Los archivos y reportes son internos, y esta configuración no representa por sí sola un despliegue público endurecido.
