@@ -17,6 +17,7 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "test": "npm run test --workspaces --if-present",
+    "test:db": "npm run test:db -w @multi-junta/api",
     "test:smoke": "node --env-file-if-exists=.env --test tests/e2e/health.test.mjs",
     "db:generate": "npm run db:generate -w @multi-junta/api",
     "db:validate": "npm run db:validate -w @multi-junta/api"
