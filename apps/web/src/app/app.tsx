@@ -7,10 +7,14 @@ import {
   PasswordView,
 } from '../features/identity/identity-views';
 import { PlatformPage } from '../features/platform/platform-view';
-import { OwnMembershipPage, TenantPage } from '../features/tenant/tenant-view';
 import { useCommand } from '../shared/api/use-api';
 import { Brand, Feedback, LoadIssue, roleNames } from '../shared/ui/ui';
 import { HealthPage } from './health-page';
+import {
+  JuntaWorkspace,
+  juntaNavigation,
+  type JuntaPageId,
+} from './junta-workspace';
 
 type AuthState =
   | { kind: 'loading' }
@@ -31,6 +35,7 @@ function SessionApp() {
   const [revision, setRevision] = useState(0);
   const [choosing, setChoosing] = useState(false);
   const [workspace, setWorkspace] = useState(0);
+  const [localPage, setLocalPage] = useState<JuntaPageId | null>(null);
   const session = auth.kind === 'active' ? auth.session : null;
 
   const activate = useCallback((next: Sesion, switching = false) => {
@@ -45,6 +50,7 @@ function SessionApp() {
           previous.canUsePlatform),
     }));
     setChoosing(false);
+    setLocalPage(null);
     setWorkspace((previous) => previous + 1);
   }, []);
 
@@ -131,7 +137,6 @@ function SessionApp() {
   const isPlatform =
     active.ambito === 'PLATAFORMA' && active.rol === 'SUPER_ADMIN';
   const juntaId = active.ambito === 'JUNTA' ? active.juntaId : null;
-  const isLocalAdmin = active.rol === 'ADMIN_JUNTA';
 
   if (choosing || (!isPlatform && !juntaId)) {
     return (
@@ -147,11 +152,10 @@ function SessionApp() {
     );
   }
 
-  const navLabel = isPlatform
-    ? 'Juntas'
-    : isLocalAdmin
-      ? 'Mi junta'
-      : 'Mi membresía';
+  const localRole = active.rol === 'SUPER_ADMIN' ? null : active.rol;
+  const localLinks = juntaNavigation(localRole);
+  const selectedPage =
+    localLinks.find(({ id }) => id === localPage)?.id ?? localLinks[0].id;
   return (
     <div className="workspace">
       <a className="skip-link" href="#contenido">
@@ -160,13 +164,35 @@ function SessionApp() {
       <aside className="workspace-rail">
         <Brand />
         <nav aria-label="Área de trabajo">
-          <button
-            className="workspace-nav-active"
-            type="button"
-            onClick={() => setWorkspace((previous) => previous + 1)}
-          >
-            {navLabel}
-          </button>
+          {isPlatform ? (
+            <button
+              className="workspace-nav-active"
+              type="button"
+              aria-current="page"
+              onClick={() => setWorkspace((previous) => previous + 1)}
+            >
+              Juntas
+            </button>
+          ) : (
+            localLinks.map(({ id, label }) => (
+              <button
+                key={id}
+                className={
+                  selectedPage === id
+                    ? 'workspace-nav-active'
+                    : 'workspace-nav-item'
+                }
+                type="button"
+                aria-current={selectedPage === id ? 'page' : undefined}
+                onClick={() => {
+                  setLocalPage(id);
+                  setWorkspace((previous) => previous + 1);
+                }}
+              >
+                {label}
+              </button>
+            ))
+          )}
         </nav>
         <a href="/estado" className="rail-health">
           Estado del sistema <span aria-hidden="true">↗</span>
@@ -198,7 +224,7 @@ function SessionApp() {
             </button>
           </div>
         </header>
-        <main id="contenido" className="workspace-content">
+        <main id="contenido" className="workspace-content" tabIndex={-1}>
           {logout.error && <Feedback error>{logout.error}</Feedback>}
           {isPlatform ? (
             <PlatformPage
@@ -207,21 +233,16 @@ function SessionApp() {
               onExpired={onExpired}
             />
           ) : (
-            juntaId &&
-            (isLocalAdmin ? (
-              <TenantPage
+            juntaId && (
+              <JuntaWorkspace
                 key={`${juntaId}-${workspace}`}
-                id={juntaId}
+                juntaId={juntaId}
                 csrfToken={active.csrfToken}
                 onExpired={onExpired}
+                page={selectedPage}
+                role={localRole}
               />
-            ) : (
-              <OwnMembershipPage
-                key={`${juntaId}-${workspace}`}
-                id={juntaId}
-                onExpired={onExpired}
-              />
-            ))
+            )
           )}
         </main>
       </div>

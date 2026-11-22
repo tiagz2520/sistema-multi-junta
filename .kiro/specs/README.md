@@ -8,4 +8,6 @@ Crea un directorio por capacidad cuando se prepare su especificación en Kiro. U
 
 La preparación de cada especificación precede a la implementación de su capacidad. Consulta [identidad y aislamiento](identidad-y-aislamiento/requirements.md) para autenticación y sesiones, y [gestión de plataforma y juntas](gestion-plataforma-juntas/requirements.md) para 1C.
 
+El Macroincremento 2 se divide en [administración comunitaria](administracion-comunitaria/requirements.md) y [finanzas y recursos](finanzas-recursos/requirements.md).
+
 Para esta especificación, parte de las [decisiones de identidad y aislamiento aprobadas](../../docs/architecture/identidad-y-aislamiento.md).

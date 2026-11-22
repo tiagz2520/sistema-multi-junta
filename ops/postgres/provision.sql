@@ -133,7 +133,12 @@ BEGIN
                 'multi_junta.gp_local_junta(text,uuid)',
                 'multi_junta.gp_list_membresias(text,uuid,integer)',
                 'multi_junta.gp_update_membresia(text,uuid,uuid,text,text)',
-                'multi_junta.gp_create_secretaria(text,uuid,text,text)'
+                'multi_junta.gp_create_secretaria(text,uuid,text,text)',
+                'multi_junta.op_contexto(uuid)',
+                'multi_junta.op_visible(uuid,text[])',
+                'multi_junta.op_bloquear(uuid,text)',
+                'multi_junta.op_junta_datos(uuid)',
+                'multi_junta.op_auditar_tabla()'
               ]) AS allowed(signature)
               WHERE to_regprocedure(allowed.signature)::oid = routine.oid
             )
