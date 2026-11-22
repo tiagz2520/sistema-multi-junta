@@ -42,32 +42,49 @@ enum AmbitoSesion {
 }
 
 model Junta {
-  id            String               @id @default(uuid()) @db.Uuid
-  nombre        String
-  tipo          String
-  ruc           String?              @unique
-  estado        Estado               @default(ACTIVA)
-  versionAcceso Int                  @default(1) @map("version_acceso")
-  membresias    Membresia[]
-  auditoria     AuditoriaIdentidad[]
+  id                   String                @id @default(uuid()) @db.Uuid
+  nombre               String
+  tipo                 String
+  ruc                  String?               @unique
+  estado               Estado                @default(ACTIVA)
+  versionAcceso        Int                   @default(1) @map("version_acceso")
+  membresias           Membresia[]
+  auditoria            AuditoriaIdentidad[]
+  actividad            Actividad[]
+  activo_fijo          ActivoFijo[]
+  asistencia           Asistencia[]
+  contador_comprobante ContadorComprobante?
+  gasto                Gasto[]
+  historial_asistencia HistorialAsistencia[]
+  inventario_articulo  InventarioArticulo[]
+  justificacion        Justificacion[]
+  obligacion           Obligacion[]
+  operacion_auditoria  OperacionAuditoria[]
+  pago                 Pago[]
+  propiedad            Propiedad[]
+  sector               Sector[]
+  socio                Socio[]
+  tarifa_multa         TarifaMulta[]
 
   @@map("junta")
 }
 
 model Cuenta {
-  id                       String               @id @default(uuid()) @db.Uuid
-  nombreUsuarioNormalizado String               @unique @map("nombre_usuario_normalizado") @db.VarChar(32)
-  hashContrasena           String               @map("hash_contrasena")
-  estado                   Estado               @default(ACTIVA)
-  requiereCambioContrasena Boolean              @default(false) @map("requiere_cambio_contrasena")
-  versionAcceso            Int                  @default(1) @map("version_acceso")
-  rolPlataformaCodigo      CodigoRol?           @map("rol_plataforma_codigo")
-  rolPlataformaAmbito      AmbitoRol            @default(PLATAFORMA) @map("rol_plataforma_ambito")
-  rolPlataforma            Rol?                 @relation("RolPlataforma", fields: [rolPlataformaCodigo, rolPlataformaAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
+  id                       String                 @id @default(uuid()) @db.Uuid
+  nombreUsuarioNormalizado String                 @unique @map("nombre_usuario_normalizado") @db.VarChar(32)
+  hashContrasena           String                 @map("hash_contrasena")
+  estado                   Estado                 @default(ACTIVA)
+  requiereCambioContrasena Boolean                @default(false) @map("requiere_cambio_contrasena")
+  versionAcceso            Int                    @default(1) @map("version_acceso")
+  rolPlataformaCodigo      CodigoRol?             @map("rol_plataforma_codigo")
+  rolPlataformaAmbito      AmbitoRol              @default(PLATAFORMA) @map("rol_plataforma_ambito")
+  rolPlataforma            Rol?                   @relation("RolPlataforma", fields: [rolPlataformaCodigo, rolPlataformaAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
   membresias               Membresia[]
   sesiones                 Sesion[]
-  auditoria                AuditoriaIdentidad[] @relation("AuditoriaActor")
-  auditoriaComoObjetivo    AuditoriaIdentidad[] @relation("AuditoriaCuentaObjetivo")
+  auditoria                AuditoriaIdentidad[]   @relation("AuditoriaActor")
+  auditoriaComoObjetivo    AuditoriaIdentidad[]   @relation("AuditoriaCuentaObjetivo")
+  inventario_movimiento    InventarioMovimiento[]
+  operacion_auditoria      OperacionAuditoria[]
 
   @@map("cuenta")
 }
@@ -156,4 +173,308 @@ model IntentoAutenticacion {
   @@id([dimension, huella])
   @@index([ventanaInicio])
   @@map("intento_autenticacion")
+}
+
+model Actividad {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id   String       @db.Uuid
+  tipo       String
+  titulo     String
+  inicio     DateTime     @db.Timestamptz(3)
+  fin        DateTime     @db.Timestamptz(3)
+  lugar      String
+  estado     String       @default("ABIERTA")
+  junta      Junta        @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  asistencia Asistencia[]
+  obligacion Obligacion[]
+
+  @@unique([junta_id, id])
+  @@index([junta_id, inicio, id], map: "actividad_inicio_idx")
+  @@map("actividad")
+}
+
+model ActivoFijo {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id          String    @db.Uuid
+  codigo            String
+  nombre            String
+  descripcion       String
+  ubicacion         String
+  fecha_adquisicion DateTime  @db.Date
+  valor             Decimal   @db.Decimal(14, 2)
+  vida_util         Int?
+  documento         String
+  estado            Estado    @default(ACTIVA)
+  motivo_baja       String?
+  baja_en           DateTime? @db.Timestamptz(3)
+  junta             Junta     @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+
+  @@unique([junta_id, codigo], map: "activo_fijo_codigo_key")
+  @@map("activo_fijo")
+}
+
+model Asistencia {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id             String                @db.Uuid
+  actividad_id         String                @db.Uuid
+  socio_id             String                @db.Uuid
+  nombres              String
+  apellidos            String
+  estado               String?
+  actividad            Actividad             @relation(fields: [junta_id, actividad_id], references: [junta_id, id], onUpdate: NoAction)
+  junta                Junta                 @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  socio                Socio                 @relation(fields: [junta_id, socio_id], references: [junta_id, id], onUpdate: NoAction)
+  historial_asistencia HistorialAsistencia[]
+  justificaciones      Justificacion[]
+  obligacion           Obligacion?
+
+  @@unique([junta_id, actividad_id, socio_id])
+  @@unique([junta_id, id])
+  @@map("asistencia")
+}
+
+model ContadorComprobante {
+  junta_id String @id @db.Uuid
+  ultimo   BigInt
+  junta    Junta  @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+
+  @@map("contador_comprobante")
+}
+
+model Gasto {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id         String   @db.Uuid
+  concepto         String
+  descripcion      String
+  monto            Decimal  @db.Decimal(14, 2)
+  fecha            DateTime @db.Date
+  beneficiario     String
+  nombre_archivo   String
+  tipo_archivo     String
+  archivo          Bytes
+  estado           String   @default("REGISTRADO")
+  motivo_anulacion String?
+  creado_en        DateTime @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(6)
+  junta            Junta    @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+
+  @@unique([junta_id, id])
+  @@index([junta_id, fecha(sort: Desc), creado_en(sort: Desc)], map: "gasto_junta_fecha_idx")
+  @@map("gasto")
+}
+
+model HistorialAsistencia {
+  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id          String     @db.Uuid
+  asistencia_id     String     @db.Uuid
+  estado_anterior   String?
+  estado_resultante String
+  motivo            String?
+  ocurrido_en       DateTime   @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(3)
+  asistencia        Asistencia @relation(fields: [junta_id, asistencia_id], references: [junta_id, id], onUpdate: NoAction)
+  junta             Junta      @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+
+  @@unique([junta_id, id])
+  @@index([junta_id, asistencia_id, ocurrido_en, id], map: "historial_asistencia_fecha_idx")
+  @@map("historial_asistencia")
+}
+
+model InventarioArticulo {
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id              String                 @db.Uuid
+  nombre                String
+  categoria             String
+  unidad                String
+  stock                 Decimal                @default(0) @db.Decimal(14, 3)
+  costo_unitario        Decimal?               @db.Decimal(14, 2)
+  estado                Estado                 @default(ACTIVA)
+  junta                 Junta                  @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  inventario_movimiento InventarioMovimiento[]
+
+  @@unique([junta_id, id], map: "inventario_articulo_junta_id_key")
+  @@unique([junta_id, nombre], map: "inventario_articulo_nombre_key")
+  @@map("inventario_articulo")
+}
+
+model InventarioMovimiento {
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id            String             @db.Uuid
+  articulo_id         String             @db.Uuid
+  responsable_id      String             @db.Uuid
+  tipo                String
+  cantidad            Decimal            @db.Decimal(14, 3)
+  motivo              String
+  stock_resultante    Decimal            @db.Decimal(14, 3)
+  ocurrido_en         DateTime           @default(now()) @db.Timestamptz(3)
+  inventario_articulo InventarioArticulo @relation(fields: [junta_id, articulo_id], references: [junta_id, id], onUpdate: NoAction, map: "inventario_movimiento_articulo_fkey")
+  cuenta              Cuenta             @relation(fields: [responsable_id], references: [id], onUpdate: NoAction)
+
+  @@index([junta_id, articulo_id, ocurrido_en], map: "inventario_movimiento_articulo_idx")
+  @@map("inventario_movimiento")
+}
+
+model Justificacion {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id        String     @db.Uuid
+  asistencia_id   String     @db.Uuid
+  estado          String     @default("PENDIENTE")
+  motivo          String
+  motivo_decision String?
+  creada_en       DateTime   @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(3)
+  decidida_en     DateTime?  @db.Timestamptz(3)
+  asistencia      Asistencia @relation(fields: [junta_id, asistencia_id], references: [junta_id, id], onUpdate: NoAction)
+  junta           Junta      @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+
+  @@unique([junta_id, id])
+  @@index([junta_id, asistencia_id, estado], map: "justificacion_asistencia_estado_idx")
+  @@map("justificacion")
+}
+
+model Obligacion {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id         String      @db.Uuid
+  actividad_id     String      @db.Uuid
+  asistencia_id    String      @db.Uuid
+  socio_id         String      @db.Uuid
+  tarifa_id        String      @db.Uuid
+  concepto         String
+  monto            Decimal     @db.Decimal(14, 2)
+  estado           String      @default("PENDIENTE")
+  motivo_anulacion String?
+  motivo_revision  String?
+  creada_en        DateTime    @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(6)
+  actividad        Actividad   @relation(fields: [junta_id, actividad_id], references: [junta_id, id], onUpdate: NoAction)
+  asistencia       Asistencia  @relation(fields: [junta_id, asistencia_id], references: [junta_id, id], onUpdate: NoAction)
+  junta            Junta       @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  socio            Socio       @relation(fields: [junta_id, socio_id], references: [junta_id, id], onUpdate: NoAction)
+  tarifa_multa     TarifaMulta @relation(fields: [junta_id, tarifa_id], references: [junta_id, id], onUpdate: NoAction)
+  pagos            Pago[]
+
+  @@unique([junta_id, asistencia_id])
+  @@unique([junta_id, id])
+  @@map("obligacion")
+}
+
+model OperacionAuditoria {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id    String   @db.Uuid
+  cuenta_id   String   @db.Uuid
+  tabla       String
+  objeto_id   String   @db.Uuid
+  evento      String
+  ocurrido_en DateTime @default(now()) @db.Timestamptz(3)
+  cuenta      Cuenta   @relation(fields: [cuenta_id], references: [id], onUpdate: NoAction)
+  junta       Junta    @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+
+  @@index([junta_id, tabla, objeto_id, ocurrido_en], map: "operacion_auditoria_junta_objeto_idx")
+  @@map("operacion_auditoria")
+}
+
+model Pago {
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id           String      @db.Uuid
+  obligacion_id      String?     @db.Uuid
+  socio_id           String      @db.Uuid
+  socio_nombre       String
+  junta_nombre       String
+  junta_ruc          String?
+  concepto           String
+  monto              Decimal     @db.Decimal(14, 2)
+  fecha              DateTime    @db.Date
+  metodo             String
+  solicitud_id       String      @db.Uuid
+  numero_comprobante BigInt
+  estado             String      @default("REGISTRADO")
+  motivo_anulacion   String?
+  creado_en          DateTime    @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(6)
+  junta              Junta       @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  obligacion         Obligacion? @relation(fields: [junta_id, obligacion_id], references: [junta_id, id], onUpdate: NoAction)
+  socio              Socio       @relation(fields: [junta_id, socio_id], references: [junta_id, id], onUpdate: NoAction)
+
+  @@unique([junta_id, id])
+  @@unique([junta_id, numero_comprobante])
+  @@unique([junta_id, solicitud_id])
+  @@index([junta_id, fecha(sort: Desc), numero_comprobante(sort: Desc)], map: "pago_junta_fecha_idx")
+  @@map("pago")
+}
+
+model Propiedad {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id       String         @db.Uuid
+  socio_id       String         @db.Uuid
+  sector_id      String         @db.Uuid
+  nombre         String
+  dimensiones    String
+  latitud        Decimal?       @db.Decimal(9, 6)
+  longitud       Decimal?       @db.Decimal(9, 6)
+  estado         Estado         @default(ACTIVA)
+  junta          Junta          @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  sector         Sector         @relation(fields: [junta_id, sector_id], references: [junta_id, id], onUpdate: NoAction, map: "propiedad_sector_fkey")
+  socio          Socio          @relation(fields: [junta_id, socio_id], references: [junta_id, id], onUpdate: NoAction, map: "propiedad_socio_fkey")
+  propiedad_foto PropiedadFoto?
+
+  @@unique([junta_id, id], map: "propiedad_junta_id_key")
+  @@index([junta_id, sector_id], map: "propiedad_sector_idx")
+  @@index([junta_id, socio_id], map: "propiedad_socio_idx")
+  @@map("propiedad")
+}
+
+model PropiedadFoto {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id     String    @db.Uuid
+  propiedad_id String    @db.Uuid
+  imagen       Bytes
+  propiedad    Propiedad @relation(fields: [junta_id, propiedad_id], references: [junta_id, id], onUpdate: NoAction, map: "propiedad_foto_propiedad_fkey")
+
+  @@unique([junta_id, propiedad_id], map: "propiedad_foto_propiedad_key")
+  @@map("propiedad_foto")
+}
+
+model Sector {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id      String      @db.Uuid
+  nombre        String
+  clasificacion String
+  descripcion   String?
+  estado        Estado      @default(ACTIVA)
+  propiedad     Propiedad[]
+  junta         Junta       @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  socio         Socio[]
+
+  @@unique([junta_id, id])
+  @@map("sector")
+}
+
+model Socio {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id   String       @db.Uuid
+  cedula     String
+  nombres    String
+  apellidos  String
+  estado     Estado       @default(ACTIVA)
+  sector_id  String?      @db.Uuid
+  asistencia Asistencia[]
+  obligacion Obligacion[]
+  pago       Pago[]
+  propiedad  Propiedad[]
+  junta      Junta        @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  sector     Sector?      @relation(fields: [junta_id, sector_id], references: [junta_id, id], onUpdate: NoAction)
+
+  @@unique([junta_id, cedula])
+  @@unique([junta_id, id])
+  @@index([junta_id, sector_id, apellidos, nombres, id], map: "socio_sector_idx")
+  @@map("socio")
+}
+
+model TarifaMulta {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id      String       @db.Uuid
+  tipo          String
+  vigente_desde DateTime     @db.Date
+  monto         Decimal      @db.Decimal(14, 2)
+  obligacion    Obligacion[]
+  junta         Junta        @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+
+  @@unique([junta_id, id])
+  @@unique([junta_id, tipo, vigente_desde])
+  @@map("tarifa_multa")
 }

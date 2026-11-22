@@ -8,11 +8,12 @@
     "build": "npm run db:generate && nest build",
     "start": "node dist/main.js",
     "lint": "eslint src test prisma.config.ts",
-    "test": "npm run build && node --test test/health.e2e.test.mjs",
+    "test": "npm run build && node --test test/health.e2e.test.mjs test/operacional.unit.test.mjs",
     "test:db": "node --env-file-if-exists=../../.env --test test/postgres.integration.mjs",
     "test:db:identity": "node --test test/identity.integration.mjs",
     "test:db:auth": "node --test test/auth.integration.mjs",
     "test:db:platform": "node --test test/platform.integration.mjs",
+    "test:db:operations": "node --test --test-concurrency=1 test/administration.integration.mjs test/finance.integration.mjs test/resources.integration.mjs",
     "auth:bootstrap": "node --env-file-if-exists=../../.env dist/modules/platform/identity/bootstrap-super-admin.js",
     "db:generate": "prisma generate --config prisma.config.ts",
     "db:validate": "prisma validate --config prisma.config.ts"
@@ -24,11 +25,13 @@
     "@node-rs/argon2": "2.2.2",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
+    "pdfkit": "0.21.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.15",
+    "@types/pdfkit": "^0.17.7",
     "prisma": "7.10.1"
   }
 }
