@@ -14,26 +14,68 @@ const host = '127.0.0.1';
 const origin = `http://${host}`;
 const runtimeRole = 'multi_junta_app';
 const marker = 'DEMO_OPERATIVO_INICIALIZADO';
+const presentationMarker = 'DEMO_TUNGURAHUA_PRESENTACION_V1';
 const roles = {
   admin: 'ADMIN_JUNTA',
   secretaria: 'SECRETARIA',
   tesoreria: 'TESORERIA',
   socio: 'SOCIO',
 };
+// Organizaciones reales según Gobierno Provincial de Tungurahua.
+// Son nombres de referencia: cuentas, RUC, finanzas y socios son SIEMPRE sintéticos.
+// https://www.tungurahua.gob.ec/entrega-de-los-planes-de-mejora-de-las-juntas-de-riego-fortalece-la-gestion-del-agua-en-tungurahua/
 const examples = [
   {
     key: 'rio',
-    nombre: 'Junta Demo Río Claro',
+    nombre: 'Junta de Riego de la Acequia Mocha Huachi (DEMO)',
+    previousName: 'Junta Demo Río Claro',
+    zona: 'Cevallos',
+    lat: '-1.350000',
+    lng: '-78.620000',
     tipo: 'RIEGO',
     ruc: '0000000000001',
     activityType: 'ASAMBLEA',
   },
   {
     key: 'valle',
-    nombre: 'Junta Demo Valle Verde',
-    tipo: 'COMUNITARIA',
+    nombre: 'Junta de Riego Quillán La Playa (DEMO)',
+    previousName: 'Junta Demo Valle Verde',
+    zona: 'Ambato',
+    lat: '-1.240000',
+    lng: '-78.620000',
+    tipo: 'RIEGO',
     ruc: '0000000000002',
     activityType: 'MINGA',
+  },
+  {
+    key: 'lalama',
+    nombre: 'Junta de Riego Acequia Lalama (DEMO)',
+    zona: 'Ambato',
+    lat: '-1.250000',
+    lng: '-78.610000',
+    tipo: 'RIEGO',
+    ruc: '0000000000003',
+    activityType: 'ASAMBLEA',
+  },
+  {
+    key: 'loro',
+    nombre: 'Junta de Riego Loro Guachana El Molino (DEMO)',
+    zona: 'Patate',
+    lat: '-1.310000',
+    lng: '-78.490000',
+    tipo: 'RIEGO',
+    ruc: '0000000000004',
+    activityType: 'MINGA',
+  },
+  {
+    key: 'clementina',
+    nombre: 'Junta de Riego Santa Rosa La Clementina (DEMO)',
+    zona: 'Pelileo',
+    lat: '-1.330000',
+    lng: '-78.540000',
+    tipo: 'RIEGO',
+    ruc: '0000000000005',
+    activityType: 'ASAMBLEA',
   },
 ];
 
@@ -208,6 +250,28 @@ async function prepareIdentity(admin, password) {
     }
   });
   return { anchor, pending };
+}
+
+async function synchronizeDemoNames(admin) {
+  for (const example of examples) {
+    const id = demoId(`junta:${example.key}`);
+    const existing = await admin.junta.findUnique({ where: { id } });
+    if (!existing || existing.ruc !== example.ruc)
+      throw new DemoError(
+        'Una junta de demostración no coincide con su identificador y RUC ficticio.',
+      );
+    if (existing.nombre === example.nombre && existing.tipo === example.tipo)
+      continue;
+    // Solo permite renombrar los dos registros sintéticos de la demo anterior.
+    if (existing.nombre !== example.previousName)
+      throw new DemoError(
+        `La junta ${example.key} fue modificada manualmente; se conserva su nombre.`,
+      );
+    await admin.junta.update({
+      where: { id },
+      data: { nombre: example.nombre, tipo: example.tipo },
+    });
+  }
 }
 
 function makeRequest(base) {
@@ -489,6 +553,212 @@ async function seedJunta(request, example, password, demoDay) {
   }
 }
 
+const presentationProfiles = [
+  ['0000000101', 'Daniela', 'Viteri Cobo'],
+  ['0000000102', 'Mateo', 'Lema Paredes'],
+  ['0000000103', 'Valeria', 'Naranjo Sánchez'],
+  ['0000000104', 'Jorge', 'Quishpe Andrade'],
+  ['0000000105', 'Camila', 'Guevara Torres'],
+  ['0000000106', 'Andrés', 'Moposita Ruiz'],
+];
+
+function shiftDay(day, amount) {
+  const date = new Date(`${day}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+// Complementos para la presentación: nombres y cédulas de personas inventados,
+// zonas y coordenadas de parcelas referenciales, nunca padrones oficiales.
+async function enrichPresentation(request, example, password, demoDay) {
+  const sessions = [];
+  try {
+    for (const role of ['admin', 'secretaria', 'tesoreria', 'socio']) {
+      sessions.push(
+        await login(request, username(example, role), password, example.id),
+      );
+    }
+    const [admin, secretary, treasury] = sessions
+      .slice(0, 3)
+      .map((session) => apiFor(request, example, session));
+
+    const sectorName = `Sector referencial ${example.key}`;
+    const sector = await ensure(
+      () => admin.read('administracion/sectores'),
+      (body) => admin.add('administracion/sectores', body),
+      ({ nombre }) => nombre === sectorName,
+      { nombre: sectorName, clasificacion: 'Comunitario' },
+    );
+    const socios = [];
+    for (const [cedula, nombres, apellidos] of presentationProfiles) {
+      socios.push(
+        await ensure(
+          () => secretary.read(`administracion/socios?q=${cedula}`),
+          (body) => secretary.add('administracion/socios', body),
+          (row) => row.cedula === cedula,
+          { cedula, nombres, apellidos, sectorId: sector.id },
+        ),
+      );
+    }
+
+    // Tarifas vigentes desde hoy: la aplicación no permite crear tarifas retroactivas.
+    const pastDate = shiftDay(demoDay, -1);
+    for (const tipo of ['ASAMBLEA', 'MINGA']) {
+      await ensure(
+        () => admin.read('finanzas/tarifas'),
+        (body) => admin.add('finanzas/tarifas', body),
+        (row) => row.tipo === tipo && row.vigenteDesde === pastDate,
+        {
+          tipo,
+          vigenteDesde: pastDate,
+          monto: tipo === 'ASAMBLEA' ? '3.75' : '4.25',
+        },
+      );
+    }
+
+    const activityPath = 'administracion/actividades';
+    const templates = [
+      {
+        tipo: 'ASAMBLEA',
+        titulo: `Asamblea de rendición de cuentas (muestra ${example.key})`,
+        day: pastDate,
+        hour: '06:00:00',
+        end: '07:00:00',
+        closed: true,
+        absent: true,
+      },
+      {
+        tipo: 'MINGA',
+        titulo: `Minga de revisión de canales (muestra ${example.key})`,
+        day: pastDate,
+        hour: '07:30:00',
+        end: '09:00:00',
+        closed: true,
+        absent: false,
+      },
+      {
+        tipo: 'ASAMBLEA',
+        titulo: `Asamblea de planificación de turnos (muestra ${example.key})`,
+        day: shiftDay(demoDay, 4),
+        hour: '16:00:00',
+        end: '18:00:00',
+        closed: false,
+      },
+      {
+        tipo: 'MINGA',
+        titulo: `Minga de mantenimiento comunitario (muestra ${example.key})`,
+        day: shiftDay(demoDay, 6),
+        hour: '08:00:00',
+        end: '12:00:00',
+        closed: false,
+      },
+    ];
+    for (const template of templates) {
+      const activity = await ensure(
+        () => secretary.read(activityPath),
+        (body) => secretary.add(activityPath, body),
+        (row) => row.titulo === template.titulo,
+        {
+          tipo: template.tipo,
+          titulo: template.titulo,
+          inicio: `${template.day}T${template.hour}-05:00`,
+          fin: `${template.day}T${template.end}-05:00`,
+          lugar: `Sede referencial de ${example.zona} (demo)`,
+        },
+      );
+      if (!template.closed) continue;
+      const detailPath = `${activityPath}/${activity.id}`;
+      const details = await secretary.read(detailPath);
+      const absentee = details.participantes.find(
+        (row) => row.socioId === socios[0].id,
+      );
+      for (const participant of details.participantes) {
+        if (participant.estado !== null) continue;
+        await secretary.mark(
+          `${detailPath}/asistencias/${participant.socioId}`,
+          {
+            estado:
+              template.absent && participant.socioId === socios[0].id
+                ? 'AUSENTE'
+                : 'PRESENTE',
+          },
+        );
+      }
+      if (details.estado === 'ABIERTA')
+        await secretary.add(`${detailPath}/cerrar`);
+      if (template.absent && absentee) {
+        const existing = await treasury.read('finanzas/multas');
+        if (!existing.some((row) => row.asistenciaId === absentee.id)) {
+          const candidates = await treasury.read(
+            `finanzas/multas/candidatas?actividadId=${activity.id}`,
+          );
+          if (
+            !candidates.some(
+              (row) => row.asistenciaId === absentee.id && row.tarifaId,
+            )
+          )
+            throw new DemoError(
+              'La multa ilustrativa no tiene tarifa o asistencia elegible.',
+            );
+          await treasury.add('finanzas/multas', {
+            actividadId: activity.id,
+            asistenciaIds: [absentee.id],
+          });
+        }
+      }
+    }
+
+    for (const [index, socio] of socios.entries()) {
+      if (index >= 3) break;
+      const name = `Parcela ilustrativa ${index + 1} · ${example.zona} (DEMO)`;
+      await ensure(
+        () => secretary.read('recursos/propiedades'),
+        (body) => secretary.add('recursos/propiedades', body),
+        (row) => row.nombre === name,
+        {
+          nombre: name,
+          socioId: socio.id,
+          sectorId: sector.id,
+          dimensiones: `${120 + index * 30} × ${80 + index * 20} m`,
+          latitud: (Number(example.lat) + index * 0.0004).toFixed(6),
+          longitud: (Number(example.lng) + index * 0.0004).toFixed(6),
+        },
+      );
+    }
+
+    // La cuenta existente de SOCIO queda vinculada a una persona inventada.
+    // Si ya fue vinculada manualmente, se respeta ese vínculo.
+    const member = (await admin.read('membresias?offset=0')).find(
+      (row) => row.usuario === username(example, 'socio'),
+    );
+    const links = await admin.read('portal/vinculos');
+    if (
+      member &&
+      !links.some(
+        (row) =>
+          (row.membresiaId === member.id || row.socioId === socios[0].id) &&
+          (row.estado === 'ACTIVO' || row.estado === 'PENDIENTE'),
+      )
+    ) {
+      const invitation = await admin.add('portal/invitaciones', {
+        membresiaId: member.id,
+        socioId: socios[0].id,
+      });
+      await request(`/juntas/${example.id}/portal/confirmar`, {
+        method: 'POST',
+        session: sessions[3],
+        payload: { codigo: invitation.codigo },
+      });
+    }
+  } finally {
+    await Promise.allSettled(
+      sessions.map((session) =>
+        request('/auth/cerrar-sesion', { method: 'POST', session }),
+      ),
+    );
+  }
+}
+
 async function main() {
   if (process.env.NODE_ENV?.trim().toLowerCase() === 'production')
     throw new DemoError('La demostración está deshabilitada en producción.');
@@ -525,9 +795,19 @@ async function main() {
         'Ya se está preparando una demostración en esta base.',
       );
     const { anchor, pending } = await prepareIdentity(admin, password);
-    if (pending.length === 0) {
+    await synchronizeDemoNames(admin);
+    const completed = await admin.auditoriaIdentidad.findMany({
+      where: { cuentaId: anchor, evento: presentationMarker },
+      select: { juntaId: true },
+    });
+    const presentationPending = examples
+      .map((example) => ({ ...example, id: demoId(`junta:${example.key}`) }))
+      .filter(
+        (example) => !completed.some((row) => row.juntaId === example.id),
+      );
+    if (!pending.length && !presentationPending.length) {
       process.stdout.write(
-        `La demostración en ${runtimeInfo.database} ya está preparada.\n`,
+        `La demostración de Tungurahua en ${runtimeInfo.database} ya está preparada.\n`,
       );
       return;
     }
@@ -542,6 +822,17 @@ async function main() {
           data: { cuentaId: anchor, juntaId: example.id, evento: marker },
         });
         process.stdout.write(`Preparada ${example.nombre}.\n`);
+      }
+      for (const example of presentationPending) {
+        await enrichPresentation(request, example, password, tomorrow);
+        await admin.auditoriaIdentidad.create({
+          data: {
+            cuentaId: anchor,
+            juntaId: example.id,
+            evento: presentationMarker,
+          },
+        });
+        process.stdout.write(`Presentación completada: ${example.nombre}.\n`);
       }
     } finally {
       await app.close();

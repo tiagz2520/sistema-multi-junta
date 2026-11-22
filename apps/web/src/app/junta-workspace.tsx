@@ -53,6 +53,28 @@ const pageLabels = {
 
 export type JuntaPageId = keyof typeof pageLabels;
 
+const navigationGroups: Record<JuntaPageId, string> = {
+  junta: '01 / ORGANIZACIÓN',
+  membership: '01 / ORGANIZACIÓN',
+  sectors: '01 / ORGANIZACIÓN',
+  socios: '01 / ORGANIZACIÓN',
+  activities: '02 / OPERACIONES',
+  tariffs: '02 / OPERACIONES',
+  fines: '02 / OPERACIONES',
+  payments: '02 / OPERACIONES',
+  expenses: '02 / OPERACIONES',
+  inventory: '03 / PATRIMONIO',
+  assets: '03 / PATRIMONIO',
+  properties: '03 / PATRIMONIO',
+  vinculaciones: '04 / COMUNICACIÓN',
+  portal: '04 / COMUNICACIÓN',
+  convocatorias: '04 / COMUNICACIÓN',
+  documentos: '04 / COMUNICACIÓN',
+  mensajes: '04 / COMUNICACIÓN',
+  horarios: '04 / COMUNICACIÓN',
+  reportes: '05 / ANÁLISIS',
+};
+
 const pagesByRole: Record<RolLocal, JuntaPageId[]> = {
   ADMIN_JUNTA: [
     'junta',
@@ -101,7 +123,11 @@ const pagesByRole: Record<RolLocal, JuntaPageId[]> = {
 
 export function juntaNavigation(role: RolLocal | null) {
   const pages = role ? pagesByRole[role] : pagesByRole.SOCIO;
-  return pages.map((id) => ({ id, label: pageLabels[id] }));
+  return pages.map((id) => ({
+    id,
+    label: pageLabels[id],
+    group: navigationGroups[id],
+  }));
 }
 
 export function JuntaWorkspace({

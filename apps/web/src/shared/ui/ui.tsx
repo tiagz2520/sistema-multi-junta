@@ -26,12 +26,18 @@ export function Brand() {
   return (
     <div className="brand">
       <span className="brand-mark" aria-hidden="true">
-        <i />
-        <i />
-        <i />
+        <svg
+          viewBox="0 0 30 30"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
+          <path d="M3 5H27M3 14H20Q25 14 25 19V25M3 24H12Q17 24 17 19V5" />
+        </svg>
       </span>
-      <span>
-        Sistema <strong>Multi-Junta</strong>
+      <span className="brand-wordmark">
+        <strong>MULTI—JUNTA</strong>
+        <small>GESTIÓN COMUNITARIA</small>
       </span>
     </div>
   );

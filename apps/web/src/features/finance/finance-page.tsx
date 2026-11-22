@@ -19,6 +19,7 @@ import {
   stateLabel,
 } from '../../shared/ui/records';
 import { Feedback } from '../../shared/ui/ui';
+import { ActivityPicker } from '../../shared/ui/activity-picker';
 
 const amountPattern = '[0-9]{1,12}([.,][0-9]{1,2})?';
 const amount = (form: FormData, key = 'monto') =>
@@ -262,22 +263,12 @@ function FineGenerator(
     <Section title="Generar multas">
       <Resource resource={activities}>
         {(rows) => (
-          <label className="action-select">
-            Actividad cerrada
-            <select
-              value={activity}
-              onChange={(event) => setActivity(event.target.value)}
-            >
-              <option value="">Selecciona una actividad</option>
-              {rows
-                .filter((row) => row.estado === 'CERRADA')
-                .map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.titulo}
-                  </option>
-                ))}
-            </select>
-          </label>
+          <ActivityPicker
+            activities={rows}
+            value={activity}
+            onChange={setActivity}
+            closedOnly
+          />
         )}
       </Resource>
       {activity ? (

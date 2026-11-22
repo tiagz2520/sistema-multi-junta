@@ -163,34 +163,51 @@ function SessionApp() {
       </a>
       <aside className="workspace-rail">
         <Brand />
+        <div className="rail-context">
+          <span className="rail-overline">Espacio de trabajo</span>
+          <strong>
+            {isPlatform
+              ? 'Plataforma'
+              : active.rol
+                ? roleNames[active.rol]
+                : 'Junta'}
+          </strong>
+        </div>
         <nav aria-label="Área de trabajo">
           {isPlatform ? (
-            <button
-              className="workspace-nav-active"
-              type="button"
-              aria-current="page"
-              onClick={() => setWorkspace((previous) => previous + 1)}
-            >
-              Juntas
-            </button>
-          ) : (
-            localLinks.map(({ id, label }) => (
+            <>
+              <span className="nav-section-label">01 / PLATAFORMA</span>
               <button
-                key={id}
-                className={
-                  selectedPage === id
-                    ? 'workspace-nav-active'
-                    : 'workspace-nav-item'
-                }
+                className="workspace-nav-active"
                 type="button"
-                aria-current={selectedPage === id ? 'page' : undefined}
-                onClick={() => {
-                  setLocalPage(id);
-                  setWorkspace((previous) => previous + 1);
-                }}
+                aria-current="page"
+                onClick={() => setWorkspace((previous) => previous + 1)}
               >
-                {label}
+                Juntas
               </button>
+            </>
+          ) : (
+            localLinks.map(({ id, label, group }, index) => (
+              <div className="workspace-nav-entry" key={id}>
+                {(index === 0 || localLinks[index - 1].group !== group) && (
+                  <span className="nav-section-label">{group}</span>
+                )}
+                <button
+                  className={
+                    selectedPage === id
+                      ? 'workspace-nav-active'
+                      : 'workspace-nav-item'
+                  }
+                  type="button"
+                  aria-current={selectedPage === id ? 'page' : undefined}
+                  onClick={() => {
+                    setLocalPage(id);
+                    setWorkspace((previous) => previous + 1);
+                  }}
+                >
+                  {label}
+                </button>
+              </div>
             ))
           )}
         </nav>
