@@ -2,9 +2,9 @@
 
 Sistema de Gestión Integral para Juntas Parroquiales y Comunitarias del Ecuador. El monorepositorio reúne la web, la API y PostgreSQL. La web muestra el estado de la API a través del proxy local de Vite. El Incremento 1B.1 separa las credenciales de PostgreSQL para el aprovisionamiento, las migraciones y la ejecución de la API.
 
-## Inicio rápido para compañeros
+## Inicio rápido
 
-Esta es la ruta recomendada para **compañeros que descargan el proyecto por primera vez** y quieren ver la interfaz Editorial Operativo B y las cinco juntas de riego de Tungurahua con datos sintéticos. No necesita una base de datos compartida ni modificar el código. Cada compañero trabaja con **su propia base de demostración**.
+Esta es la ruta recomendada para **descargar el proyecto por primera vez** y quieren ver las cinco juntas de riego de Tungurahua con datos sintéticos. No necesita una base de datos compartida ni modificar el código. Cada compañero trabaja con **su propia base de demostración**.
 
 > **Importante:** todo lo descrito aquí es **solo para localhost y uso académico**. Las contraseñas, RUC, cédulas, socios, multas, pagos, ubicaciones de parcelas y actividades son ficticios. Los nombres de las cinco juntas se basan en referencias públicas; no representan sus registros oficiales. No publiques este entorno ni uses los valores de ejemplo con datos reales.
 
