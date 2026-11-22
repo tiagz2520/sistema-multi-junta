@@ -37,5 +37,12 @@ import { ManagementService } from './management/management.service.js';
     AuthScopeGuard,
     AuthRoleGuard,
   ],
+  exports: [
+    AuthService,
+    AuthCsrfGuard,
+    AuthSessionGuard,
+    AuthScopeGuard,
+    AuthRoleGuard,
+  ],
 })
 export class PlatformModule {}
