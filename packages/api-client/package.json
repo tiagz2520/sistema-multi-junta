@@ -1,5 +1,7 @@
 {
   "name": "@multi-junta/api-client",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts"
 }

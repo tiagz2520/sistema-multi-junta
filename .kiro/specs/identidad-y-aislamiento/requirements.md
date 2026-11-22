@@ -8,6 +8,8 @@ Establecer cómo una cuenta accede a la plataforma y a las juntas que le corresp
 
 Los flujos de alta de junta, asignación de administradores y gestión local de cuentas figuran como requisitos de origen. D-02 determina qué operaciones funcionales entran en cada incremento. El padrón, la configuración general de una junta, el portal del socio y la mensajería aportan casos de autorización. Su implementación funcional queda sujeta a la especificación de cada capacidad. Los escenarios pueden comprobar su perímetro con recursos de prueba sintéticos.
 
+Las decisiones de alta de juntas, asignación, gestión local y primera entrega para 1C están vinculadas a D-01 a D-03 en la [especificación de plataforma y juntas](../gestion-plataforma-juntas/requirements.md).
+
 ## Fuentes y autoridad
 
 | Referencia                                                                                                           | Alcance                                                                                          |

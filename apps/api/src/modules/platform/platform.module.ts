@@ -13,12 +13,23 @@ import {
 import { AuthRepository } from './identity/auth.repository.js';
 import { AuthService } from './identity/auth.service.js';
 import { MembershipRepository } from './identity/membership.repository.js';
+import {
+  JuntaManagementController,
+  PlatformManagementController,
+} from './management/management.controller.js';
+import { ManagementService } from './management/management.service.js';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [AuthController, OwnMembershipController],
+  controllers: [
+    AuthController,
+    OwnMembershipController,
+    PlatformManagementController,
+    JuntaManagementController,
+  ],
   providers: [
     MembershipRepository,
+    ManagementService,
     AuthRepository,
     AuthService,
     AuthCsrfGuard,

@@ -92,4 +92,12 @@ Para iniciar sesión, el cliente envía JSON con `usuario` y `contrasena` a `POS
 - `tests/e2e/` contiene la prueba de comunicación y `ops/postgres/` contiene el aprovisionamiento de roles.
 - `.kiro/specs/` contiene la especificación de identidad y aislamiento. [AGENTS.md](AGENTS.md) recoge las decisiones y reglas de desarrollo.
 
-1B.3 incluye la autenticación, las sesiones y el acceso a la membresía propia. Los permisos por recurso de negocio y los flujos de alta y recuperación de acceso corresponden a incrementos posteriores.
+## Gestión de Plataforma y Juntas
+
+Después de actualizar desde 1B.3, vuelve a ejecutar `docker compose run --rm --no-deps postgres-roles` y aplica las migraciones con `npm exec --workspace @multi-junta/api -- prisma migrate deploy`. Conserva el proyecto y volumen de Compose. La migración de 1C amplía la auditoría y concede a la API ejecución sobre rutinas de gestión acotadas.
+
+Abre la web en `http://127.0.0.1:5173` y accede con la cuenta de plataforma inicializada. El panel permite registrar una junta, abrir su ficha y asignar un administrador nuevo. En el resultado del alta se muestra una contraseña temporal individual que el operador entrega por un canal privado. El administrador inicia sesión, establece su propia contraseña y selecciona su junta. Puede consultar y gestionar las membresías locales de su alcance y habilitar una vez la primera Secretaría.
+
+`npm run test:db:platform` comprueba los contratos y privilegios del incremento con la misma base aislada de `test:db:auth`. Con las dos aplicaciones compiladas, instala el navegador mediante `npm exec -- playwright install --only-shell chromium` y ejecuta `npm run test:e2e:platform`, que inicia web y API locales con la base de pruebas y recorre el flujo desde un navegador real. [Especificación 1C](.kiro/specs/gestion-plataforma-juntas/requirements.md)
+
+El alta ordinaria de miembros depende del padrón. La vinculación de cuentas existentes y la recuperación de credenciales permanecen pendientes.

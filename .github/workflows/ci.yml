@@ -39,3 +39,6 @@ jobs:
           npm exec --workspace @multi-junta/api -- prisma migrate deploy
           npm run test:db:identity
           npm run test:db:auth
+          npm run test:db:platform
+          npm exec -- playwright install --with-deps --only-shell chromium
+          npm run test:e2e:platform

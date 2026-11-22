@@ -107,10 +107,35 @@ BEGIN
         ownership.dbid = database_id AND ownership.classid = 'pg_proc'::regclass AND EXISTS (
           SELECT FROM pg_proc AS routine
           WHERE routine.oid = ownership.objid AND routine.pronamespace = app_schema_id
-            AND routine.proname IN (
-              'auth_attempt', 'auth_credential', 'auth_live_session', 'auth_start',
-              'auth_validate', 'auth_contexts', 'auth_switch', 'auth_logout',
-              'auth_own_credential', 'auth_password', 'auth_membership'
+            AND EXISTS (
+              SELECT FROM unnest(ARRAY[
+                'multi_junta.auth_attempt(text,text)',
+                'multi_junta.auth_credential(text)',
+                'multi_junta.auth_live_session(text)',
+                'multi_junta.auth_start(uuid,integer,text,integer,integer)',
+                'multi_junta.auth_validate(text,integer)',
+                'multi_junta.auth_contexts(text)',
+                'multi_junta.auth_switch(text,text,uuid,integer)',
+                'multi_junta.auth_logout(text)',
+                'multi_junta.auth_own_credential(text)',
+                'multi_junta.auth_password(text,integer,text)',
+                'multi_junta.auth_membership(text)',
+                'multi_junta.gp_authorize(text,uuid,boolean)',
+                'multi_junta.gp_junta_json(uuid,text,text,text,multi_junta.estado)',
+                'multi_junta.gp_membresia_json(uuid,uuid,text,multi_junta.codigo_rol,multi_junta.estado)',
+                'multi_junta.gp_secretaria_disponible(uuid)',
+                'multi_junta.gp_alta_membresia(uuid,uuid,text,text,multi_junta.codigo_rol,text)',
+                'multi_junta.gp_list_juntas(text,integer)',
+                'multi_junta.gp_create_junta(text,text,text,text)',
+                'multi_junta.gp_get_junta(text,uuid)',
+                'multi_junta.gp_set_junta_estado(text,uuid,text)',
+                'multi_junta.gp_create_admin(text,uuid,text,text)',
+                'multi_junta.gp_local_junta(text,uuid)',
+                'multi_junta.gp_list_membresias(text,uuid,integer)',
+                'multi_junta.gp_update_membresia(text,uuid,uuid,text,text)',
+                'multi_junta.gp_create_secretaria(text,uuid,text,text)'
+              ]) AS allowed(signature)
+              WHERE to_regprocedure(allowed.signature)::oid = routine.oid
             )
         )
       )
