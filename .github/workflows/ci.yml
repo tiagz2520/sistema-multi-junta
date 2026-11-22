@@ -44,3 +44,4 @@ jobs:
           npm exec -- playwright install --with-deps --only-shell chromium
           npm run test:e2e:platform
           npm run test:e2e:operations
+          npm run test:e2e:final
