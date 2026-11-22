@@ -42,13 +42,14 @@ enum AmbitoSesion {
 }
 
 model Junta {
-  id            String      @id @default(uuid()) @db.Uuid
+  id            String               @id @default(uuid()) @db.Uuid
   nombre        String
   tipo          String
-  ruc           String?     @unique
-  estado        Estado      @default(ACTIVA)
-  versionAcceso Int         @default(1) @map("version_acceso")
+  ruc           String?              @unique
+  estado        Estado               @default(ACTIVA)
+  versionAcceso Int                  @default(1) @map("version_acceso")
   membresias    Membresia[]
+  auditoria     AuditoriaIdentidad[]
 
   @@map("junta")
 }
@@ -65,7 +66,8 @@ model Cuenta {
   rolPlataforma            Rol?                 @relation("RolPlataforma", fields: [rolPlataformaCodigo, rolPlataformaAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
   membresias               Membresia[]
   sesiones                 Sesion[]
-  auditoria                AuditoriaIdentidad[]
+  auditoria                AuditoriaIdentidad[] @relation("AuditoriaActor")
+  auditoriaComoObjetivo    AuditoriaIdentidad[] @relation("AuditoriaCuentaObjetivo")
 
   @@map("cuenta")
 }
@@ -82,17 +84,18 @@ model Rol {
 }
 
 model Membresia {
-  id            String    @id @default(uuid()) @db.Uuid
-  juntaId       String    @map("junta_id") @db.Uuid
-  cuentaId      String    @map("cuenta_id") @db.Uuid
-  rolCodigo     CodigoRol @map("rol_codigo")
-  rolAmbito     AmbitoRol @default(JUNTA) @map("rol_ambito")
-  estado        Estado    @default(ACTIVA)
-  versionAcceso Int       @default(1) @map("version_acceso")
-  junta         Junta     @relation(fields: [juntaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  cuenta        Cuenta    @relation(fields: [cuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  rol           Rol       @relation("RolJunta", fields: [rolCodigo, rolAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
+  id            String               @id @default(uuid()) @db.Uuid
+  juntaId       String               @map("junta_id") @db.Uuid
+  cuentaId      String               @map("cuenta_id") @db.Uuid
+  rolCodigo     CodigoRol            @map("rol_codigo")
+  rolAmbito     AmbitoRol            @default(JUNTA) @map("rol_ambito")
+  estado        Estado               @default(ACTIVA)
+  versionAcceso Int                  @default(1) @map("version_acceso")
+  junta         Junta                @relation(fields: [juntaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  cuenta        Cuenta               @relation(fields: [cuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  rol           Rol                  @relation("RolJunta", fields: [rolCodigo, rolAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
   sesiones      Sesion[]
+  auditoria     AuditoriaIdentidad[]
 
   @@unique([juntaId, cuentaId])
   @@unique([juntaId, id, cuentaId])
@@ -123,13 +126,24 @@ model Sesion {
 }
 
 model AuditoriaIdentidad {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  cuentaId   String   @map("cuenta_id") @db.Uuid
-  evento     String
-  ocurridoEn DateTime @default(now()) @map("ocurrido_en") @db.Timestamptz(3)
-  cuenta     Cuenta   @relation(fields: [cuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  id                  String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cuentaId            String     @map("cuenta_id") @db.Uuid
+  evento              String
+  ocurridoEn          DateTime   @default(now()) @map("ocurrido_en") @db.Timestamptz(3)
+  juntaId             String?    @map("junta_id") @db.Uuid
+  objetivoCuentaId    String?    @map("objetivo_cuenta_id") @db.Uuid
+  objetivoMembresiaId String?    @map("objetivo_membresia_id") @db.Uuid
+  rolAnterior         CodigoRol? @map("rol_anterior")
+  rolResultante       CodigoRol? @map("rol_resultante")
+  estadoAnterior      Estado?    @map("estado_anterior")
+  estadoResultante    Estado?    @map("estado_resultante")
+  cuenta              Cuenta     @relation("AuditoriaActor", fields: [cuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  junta               Junta?     @relation(fields: [juntaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  objetivoCuenta      Cuenta?    @relation("AuditoriaCuentaObjetivo", fields: [objetivoCuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  objetivoMembresia   Membresia? @relation(fields: [juntaId, objetivoMembresiaId, objetivoCuentaId], references: [juntaId, id, cuentaId], onDelete: Restrict, onUpdate: Restrict, map: "auditoria_identidad_membresia_objetivo_fkey")
 
   @@index([cuentaId, ocurridoEn])
+  @@index([juntaId, evento])
   @@map("auditoria_identidad")
 }
 

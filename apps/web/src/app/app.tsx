@@ -1,127 +1,230 @@
-import { useEffect, useState } from 'react';
-import { checkApiHealth, healthEndpoint } from '../shared/api/health';
+import { api, ApiError, type Sesion } from '@multi-junta/api-client';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  AccessLayout,
+  ContextView,
+  LoginView,
+  PasswordView,
+} from '../features/identity/identity-views';
+import { PlatformPage } from '../features/platform/platform-view';
+import { OwnMembershipPage, TenantPage } from '../features/tenant/tenant-view';
+import { useCommand } from '../shared/api/use-api';
+import { Brand, Feedback, LoadIssue, roleNames } from '../shared/ui/ui';
+import { HealthPage } from './health-page';
 
-const apiStatuses = {
-  checking: {
-    label: 'Comprobando conexión',
-    classes: 'bg-stone-100 text-stone-700',
-    dot: 'bg-stone-500',
-  },
-  available: {
-    label: 'Disponible',
-    classes: 'bg-emerald-50 text-emerald-900',
-    dot: 'bg-emerald-600',
-  },
-  unavailable: {
-    label: 'No disponible',
-    classes: 'bg-red-50 text-red-900',
-    dot: 'bg-red-600',
-  },
-};
-
-const checkTime = new Intl.DateTimeFormat('es-EC', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
+type AuthState =
+  | { kind: 'loading' }
+  | { kind: 'error'; message: string }
+  | { kind: 'anonymous'; notice: string | null }
+  | { kind: 'active'; session: Sesion; canUsePlatform: boolean };
 
 export function App() {
-  const [attempt, setAttempt] = useState(0);
-  const [apiStatus, setApiStatus] =
-    useState<keyof typeof apiStatuses>('checking');
-  const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
+  return window.location.pathname === '/estado' ? (
+    <HealthPage />
+  ) : (
+    <SessionApp />
+  );
+}
+
+function SessionApp() {
+  const [auth, setAuth] = useState<AuthState>({ kind: 'loading' });
+  const [revision, setRevision] = useState(0);
+  const [choosing, setChoosing] = useState(false);
+  const [workspace, setWorkspace] = useState(0);
+  const session = auth.kind === 'active' ? auth.session : null;
+
+  const activate = useCallback((next: Sesion, switching = false) => {
+    setAuth((previous) => ({
+      kind: 'active',
+      session: next,
+      canUsePlatform:
+        next.rol === 'SUPER_ADMIN' ||
+        (switching &&
+          previous.kind === 'active' &&
+          previous.session.cuentaId === next.cuentaId &&
+          previous.canUsePlatform),
+    }));
+    setChoosing(false);
+    setWorkspace((previous) => previous + 1);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 5000);
-    let current = true;
+    void api.auth.session(controller.signal).then(
+      (next) => {
+        if (!controller.signal.aborted) activate(next);
+      },
+      (error: unknown) => {
+        if (controller.signal.aborted) return;
+        if (error instanceof ApiError && error.status === 401) {
+          setAuth({ kind: 'anonymous', notice: null });
+        } else {
+          const message =
+            error instanceof ApiError
+              ? error.message
+              : 'No pudimos comprobar la sesión.';
+          setAuth({ kind: 'error', message });
+        }
+      },
+    );
+    return () => controller.abort();
+  }, [activate, revision]);
 
-    void checkApiHealth(controller.signal).then((healthy) => {
-      window.clearTimeout(timeout);
-      if (!current) return;
+  const onExpired = useCallback(() => {
+    setAuth((previous) =>
+      previous.kind === 'active' && previous.session === session
+        ? {
+            kind: 'anonymous',
+            notice: 'La sesión terminó. Vuelve a iniciar sesión.',
+          }
+        : previous,
+    );
+  }, [session]);
 
-      setApiStatus(healthy ? 'available' : 'unavailable');
-      setLastCheckedAt(new Date());
+  const logout = useCommand(onExpired);
+  function closeSession() {
+    if (!session) return;
+    void logout.run(async () => {
+      await api.auth.logout(session.csrfToken);
+      setAuth({ kind: 'anonymous', notice: null });
+      setChoosing(false);
     });
+  }
 
-    return () => {
-      current = false;
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [attempt]);
-
-  const status = apiStatuses[apiStatus];
-
-  return (
-    <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-5 sm:px-10">
-      <header className="border-b border-[#d9e1db] py-6">
-        <p className="border-l-4 border-[#2c6856] pl-3 text-sm font-semibold">
-          Sistema Multi-Junta
-        </p>
-      </header>
-
-      <main className="flex flex-1 items-center py-14 sm:py-20">
-        <div className="w-full max-w-2xl">
-          <h1 className="max-w-xl text-4xl leading-tight font-semibold tracking-tight sm:text-6xl">
-            Estado de la infraestructura
-          </h1>
-
-          <section
-            aria-labelledby="api-heading"
-            className="mt-8 overflow-hidden rounded-2xl border border-[#d9e1db] bg-white shadow-sm"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-4 p-5 sm:p-7">
-              <div>
-                <h2 className="text-xl font-semibold" id="api-heading">
-                  API del sistema
-                </h2>
-                <code className="mt-2 block text-sm text-[#465d54]">
-                  GET {healthEndpoint}
-                </code>
-              </div>
-
-              <p
-                className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium ${status.classes}`}
-                role="status"
-              >
-                <span
-                  className={`size-2 rounded-full ${status.dot}`}
-                  aria-hidden="true"
-                />
-                {status.label}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#d9e1db] bg-[#fafcf9] px-5 py-4 sm:px-7">
-              <p className="text-sm text-[#465d54]">
-                {lastCheckedAt && (
-                  <>
-                    Última comprobación{' '}
-                    <time
-                      className="font-medium text-[#192e27]"
-                      dateTime={lastCheckedAt.toISOString()}
-                    >
-                      {checkTime.format(lastCheckedAt)}
-                    </time>
-                  </>
-                )}
-              </p>
-
-              <button
-                className="rounded-lg bg-[#215545] px-4 py-2 text-sm font-semibold text-white hover:bg-[#163c30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#215545] disabled:cursor-wait disabled:bg-[#47685b]"
-                disabled={apiStatus === 'checking'}
-                onClick={() => {
-                  setApiStatus('checking');
-                  setAttempt((previous) => previous + 1);
-                }}
-                type="button"
-              >
-                Volver a comprobar
-              </button>
-            </div>
-          </section>
+  if (auth.kind === 'loading' || logout.busy || auth.kind === 'error') {
+    return (
+      <AccessLayout>
+        <div className="access-card">
+          <LoadIssue
+            message={auth.kind === 'error' ? auth.message : undefined}
+            onRetry={() => {
+              setAuth({ kind: 'loading' });
+              setRevision((previous) => previous + 1);
+            }}
+          />
         </div>
-      </main>
+      </AccessLayout>
+    );
+  }
+
+  if (auth.kind === 'anonymous') {
+    return <LoginView onLogin={activate} notice={auth.notice} />;
+  }
+
+  const active = auth.session;
+  if (active.requiereCambioContrasena) {
+    return (
+      <PasswordView
+        session={active}
+        onChanged={() =>
+          setAuth({
+            kind: 'anonymous',
+            notice: 'Contraseña actualizada. Ingresa con tu nueva contraseña.',
+          })
+        }
+        onLogout={closeSession}
+        sessionError={logout.error}
+      />
+    );
+  }
+
+  const isPlatform =
+    active.ambito === 'PLATAFORMA' && active.rol === 'SUPER_ADMIN';
+  const juntaId = active.ambito === 'JUNTA' ? active.juntaId : null;
+  const isLocalAdmin = active.rol === 'ADMIN_JUNTA';
+
+  if (choosing || (!isPlatform && !juntaId)) {
+    return (
+      <ContextView
+        session={active}
+        canUsePlatform={auth.canUsePlatform}
+        onSelect={(next) => activate(next, true)}
+        onExpired={onExpired}
+        onBack={choosing ? () => setChoosing(false) : undefined}
+        onLogout={closeSession}
+        sessionError={logout.error}
+      />
+    );
+  }
+
+  const navLabel = isPlatform
+    ? 'Juntas'
+    : isLocalAdmin
+      ? 'Mi junta'
+      : 'Mi membresía';
+  return (
+    <div className="workspace">
+      <a className="skip-link" href="#contenido">
+        Ir al contenido
+      </a>
+      <aside className="workspace-rail">
+        <Brand />
+        <nav aria-label="Área de trabajo">
+          <button
+            className="workspace-nav-active"
+            type="button"
+            onClick={() => setWorkspace((previous) => previous + 1)}
+          >
+            {navLabel}
+          </button>
+        </nav>
+        <a href="/estado" className="rail-health">
+          Estado del sistema <span aria-hidden="true">↗</span>
+        </a>
+      </aside>
+      <div className="workspace-body">
+        <header className="workspace-topbar">
+          <div>
+            <p>{isPlatform ? 'Panel de plataforma' : 'Panel de junta'}</p>
+            <span>{active.rol && roleNames[active.rol]}</span>
+          </div>
+          <div className="topbar-actions">
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => {
+                logout.setError(null);
+                setChoosing(true);
+              }}
+            >
+              Cambiar de ámbito
+            </button>
+            <button
+              className="button-link"
+              type="button"
+              onClick={closeSession}
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </header>
+        <main id="contenido" className="workspace-content">
+          {logout.error && <Feedback error>{logout.error}</Feedback>}
+          {isPlatform ? (
+            <PlatformPage
+              key={workspace}
+              csrfToken={active.csrfToken}
+              onExpired={onExpired}
+            />
+          ) : (
+            juntaId &&
+            (isLocalAdmin ? (
+              <TenantPage
+                key={`${juntaId}-${workspace}`}
+                id={juntaId}
+                csrfToken={active.csrfToken}
+                onExpired={onExpired}
+              />
+            ) : (
+              <OwnMembershipPage
+                key={`${juntaId}-${workspace}`}
+                id={juntaId}
+                onExpired={onExpired}
+              />
+            ))
+          )}
+        </main>
+      </div>
     </div>
   );
 }

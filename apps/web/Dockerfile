@@ -12,6 +12,7 @@ RUN npm ci --workspace @multi-junta/web --include-workspace-root --no-audit --no
 
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node apps/web/ apps/web/
+COPY --chown=node:node packages/api-client/ packages/api-client/
 USER root
 RUN chown -R node:node apps/web && chmod -R u+rwX apps/web
 USER node

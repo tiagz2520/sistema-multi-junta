@@ -20,6 +20,8 @@
     "test:db": "npm run test:db -w @multi-junta/api",
     "test:db:identity": "npm run test:db:identity -w @multi-junta/api",
     "test:db:auth": "npm run test:db:auth -w @multi-junta/api",
+    "test:db:platform": "npm run test:db:platform -w @multi-junta/api",
+    "test:e2e:platform": "node --test tests/e2e/platform.test.mjs",
     "auth:bootstrap": "npm run auth:bootstrap -w @multi-junta/api",
     "test:smoke": "node --env-file-if-exists=.env --test tests/e2e/health.test.mjs",
     "db:generate": "npm run db:generate -w @multi-junta/api",
@@ -30,6 +32,7 @@
     "@types/node": "^24.19.2",
     "concurrently": "^10.0.7",
     "eslint": "^10.15.0",
+    "playwright": "1.65.1",
     "prettier": "^3.10.1",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.73.0"

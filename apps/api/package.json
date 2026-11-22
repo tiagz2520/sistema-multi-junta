@@ -12,6 +12,7 @@
     "test:db": "node --env-file-if-exists=../../.env --test test/postgres.integration.mjs",
     "test:db:identity": "node --test test/identity.integration.mjs",
     "test:db:auth": "node --test test/auth.integration.mjs",
+    "test:db:platform": "node --test test/platform.integration.mjs",
     "auth:bootstrap": "node --env-file-if-exists=../../.env dist/modules/platform/identity/bootstrap-super-admin.js",
     "db:generate": "prisma generate --config prisma.config.ts",
     "db:validate": "prisma validate --config prisma.config.ts"
