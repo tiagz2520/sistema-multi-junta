@@ -16,6 +16,17 @@ import {
   PropertiesPage,
 } from '../features/resources/resources-page';
 import { OwnMembershipPage, TenantPage } from '../features/tenant/tenant-view';
+import {
+  PortalAdminPage,
+  PortalMemberPage,
+} from '../features/portal/portal-page';
+import {
+  ConvocationsPage,
+  DocumentsPage,
+  MessagesPage,
+} from '../features/communications/communications-page';
+import { SchedulesPage } from '../features/schedules/schedules-page';
+import { ReportsPage } from '../features/reports/reports-page';
 import type { ModuleProps } from '../shared/ui/records';
 
 const pageLabels = {
@@ -31,12 +42,30 @@ const pageLabels = {
   inventory: 'Inventario',
   assets: 'Activos fijos',
   properties: 'Propiedades',
+  vinculaciones: 'Vincular socios',
+  portal: 'Mi portal',
+  convocatorias: 'Convocatorias',
+  documentos: 'Actas y oficios',
+  mensajes: 'Mensajería',
+  horarios: 'Horarios',
+  reportes: 'Reportes',
 };
 
 export type JuntaPageId = keyof typeof pageLabels;
 
 const pagesByRole: Record<RolLocal, JuntaPageId[]> = {
-  ADMIN_JUNTA: ['junta', 'sectors', 'socios', 'tariffs'],
+  ADMIN_JUNTA: [
+    'junta',
+    'sectors',
+    'socios',
+    'tariffs',
+    'vinculaciones',
+    'convocatorias',
+    'documentos',
+    'mensajes',
+    'horarios',
+    'reportes',
+  ],
   SECRETARIA: [
     'membership',
     'sectors',
@@ -44,6 +73,10 @@ const pagesByRole: Record<RolLocal, JuntaPageId[]> = {
     'activities',
     'fines',
     'properties',
+    'convocatorias',
+    'documentos',
+    'horarios',
+    'reportes',
   ],
   TESORERIA: [
     'membership',
@@ -52,8 +85,18 @@ const pagesByRole: Record<RolLocal, JuntaPageId[]> = {
     'expenses',
     'inventory',
     'assets',
+    'convocatorias',
+    'documentos',
+    'reportes',
   ],
-  SOCIO: ['membership'],
+  SOCIO: [
+    'membership',
+    'portal',
+    'convocatorias',
+    'documentos',
+    'mensajes',
+    'horarios',
+  ],
 };
 
 export function juntaNavigation(role: RolLocal | null) {
@@ -105,5 +148,33 @@ export function JuntaWorkspace({
       return <AssetsPage {...props} />;
     case 'properties':
       return <PropertiesPage {...props} />;
+    case 'vinculaciones':
+      return <PortalAdminPage {...props} />;
+    case 'portal':
+      return <PortalMemberPage {...props} />;
+    case 'convocatorias':
+      return <ConvocationsPage {...props} canWrite={role === 'SECRETARIA'} />;
+    case 'documentos':
+      return <DocumentsPage {...props} canWrite={role === 'SECRETARIA'} />;
+    case 'mensajes':
+      return <MessagesPage {...props} />;
+    case 'horarios':
+      return (
+        <SchedulesPage
+          {...props}
+          role={
+            role === 'SECRETARIA' || role === 'ADMIN_JUNTA' ? role : 'SOCIO'
+          }
+        />
+      );
+    case 'reportes':
+      return (
+        <ReportsPage
+          {...props}
+          role={
+            role === 'SECRETARIA' || role === 'TESORERIA' ? role : 'ADMIN_JUNTA'
+          }
+        />
+      );
   }
 }

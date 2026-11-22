@@ -152,6 +152,10 @@ export function createApiClient(
     administration: administrationApi(request),
     finance: financeApi(request),
     resources: resourcesApi(request),
+    portal: portalApi(request),
+    communications: communicationsApi(request),
+    schedules: schedulesApi(request),
+    reports: reportsApi(request),
     auth: {
       session: (signal?: AbortSignal) =>
         request<Sesion>('/auth/sesion', { signal }),
@@ -245,5 +249,12 @@ export function createApiClient(
 
 export const api = createApiClient();
 import { administrationApi, financeApi, resourcesApi } from './community.js';
+import {
+  communicationsApi,
+  portalApi,
+  reportsApi,
+  schedulesApi,
+} from './final.js';
 
 export * from './community.js';
+export * from './final.js';

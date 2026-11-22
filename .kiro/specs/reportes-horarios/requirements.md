@@ -1,0 +1,8 @@
+# Requisitos de horarios y reportes
+
+| ID    | Fuente                                                      | Criterio EARS                                                                                                                                                                                                         |
+| ----- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RH-01 | RF-12, APE03 CU 10 pp. 9–10                                 | Cuando Secretaría publique un horario, el sistema deberá validar el servicio activo, sector, día semanal, rango de vigencia y franja. Si se solapa con la programación del mismo sector, deberá rechazarlo.           |
+| RH-02 | RF-12 y RF-32, CU 21                                        | Cuando un Socio vinculado consulte horarios, el sistema deberá mostrar los publicados para su sector.                                                                                                                 |
+| RH-03 | RF-24, CU 17 pp. 14–15, RF-07 a RF-09, RF-13, RF-15 y RF-16 | Cuando un operador autorizado indique filtros, el sistema deberá generar un reporte real de padrón, asistencia, obligaciones, pagos o gastos de su junta y permitir su exportación.                                   |
+| RH-04 | RF-21, RF-22 y RF-24, CU 15–17                              | Cuando Tesorería consulte el resumen, deberá distinguir ingresos vigentes, gastos vigentes, obligaciones y revisiones pendientes. Los reportes de patrimonio mostrarán inventario, movimientos y activos de la junta. |

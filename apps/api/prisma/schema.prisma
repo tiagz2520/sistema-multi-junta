@@ -42,12 +42,12 @@ enum AmbitoSesion {
 }
 
 model Junta {
-  id                   String                @id @default(uuid()) @db.Uuid
+  id                   String                  @id @default(uuid()) @db.Uuid
   nombre               String
   tipo                 String
-  ruc                  String?               @unique
-  estado               Estado                @default(ACTIVA)
-  versionAcceso        Int                   @default(1) @map("version_acceso")
+  ruc                  String?                 @unique
+  estado               Estado                  @default(ACTIVA)
+  versionAcceso        Int                     @default(1) @map("version_acceso")
   membresias           Membresia[]
   auditoria            AuditoriaIdentidad[]
   actividad            Actividad[]
@@ -65,6 +65,11 @@ model Junta {
   sector               Sector[]
   socio                Socio[]
   tarifa_multa         TarifaMulta[]
+  convocatorias        Convocatoria[]
+  documentos           ComunicacionDocumento[]
+  mensajes             ComunicacionMensaje[]
+  serviciosHorario     HorarioServicio[]
+  horarios             HorarioSemanal[]
 
   @@map("junta")
 }
@@ -85,6 +90,8 @@ model Cuenta {
   auditoriaComoObjetivo    AuditoriaIdentidad[]   @relation("AuditoriaCuentaObjetivo")
   inventario_movimiento    InventarioMovimiento[]
   operacion_auditoria      OperacionAuditoria[]
+  vinculosOperados         SocioVinculo[]         @relation("VinculoOperador")
+  vinculosRevocados        SocioVinculo[]         @relation("VinculoRevocador")
 
   @@map("cuenta")
 }
@@ -101,21 +108,26 @@ model Rol {
 }
 
 model Membresia {
-  id            String               @id @default(uuid()) @db.Uuid
-  juntaId       String               @map("junta_id") @db.Uuid
-  cuentaId      String               @map("cuenta_id") @db.Uuid
-  rolCodigo     CodigoRol            @map("rol_codigo")
-  rolAmbito     AmbitoRol            @default(JUNTA) @map("rol_ambito")
-  estado        Estado               @default(ACTIVA)
-  versionAcceso Int                  @default(1) @map("version_acceso")
-  junta         Junta                @relation(fields: [juntaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  cuenta        Cuenta               @relation(fields: [cuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  rol           Rol                  @relation("RolJunta", fields: [rolCodigo, rolAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
-  sesiones      Sesion[]
-  auditoria     AuditoriaIdentidad[]
+  id                String                     @id @default(uuid()) @db.Uuid
+  juntaId           String                     @map("junta_id") @db.Uuid
+  cuentaId          String                     @map("cuenta_id") @db.Uuid
+  rolCodigo         CodigoRol                  @map("rol_codigo")
+  rolAmbito         AmbitoRol                  @default(JUNTA) @map("rol_ambito")
+  estado            Estado                     @default(ACTIVA)
+  versionAcceso     Int                        @default(1) @map("version_acceso")
+  junta             Junta                      @relation(fields: [juntaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  cuenta            Cuenta                     @relation(fields: [cuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  rol               Rol                        @relation("RolJunta", fields: [rolCodigo, rolAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
+  sesiones          Sesion[]
+  auditoria         AuditoriaIdentidad[]
+  vinculos          SocioVinculo[]
+  convocados        ConvocatoriaDestinatario[]
+  mensajesEnviados  ComunicacionMensaje[]      @relation("MensajeRemitente")
+  mensajesRecibidos ComunicacionMensaje[]      @relation("MensajeDestinatario")
 
   @@unique([juntaId, cuentaId])
   @@unique([juntaId, id, cuentaId])
+  @@unique([juntaId, id], map: "membresia_junta_id_id_key")
   @@index([cuentaId])
   @@map("membresia")
 }
@@ -176,17 +188,18 @@ model IntentoAutenticacion {
 }
 
 model Actividad {
-  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  junta_id   String       @db.Uuid
-  tipo       String
-  titulo     String
-  inicio     DateTime     @db.Timestamptz(3)
-  fin        DateTime     @db.Timestamptz(3)
-  lugar      String
-  estado     String       @default("ABIERTA")
-  junta      Junta        @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
-  asistencia Asistencia[]
-  obligacion Obligacion[]
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id      String         @db.Uuid
+  tipo          String
+  titulo        String
+  inicio        DateTime       @db.Timestamptz(3)
+  fin           DateTime       @db.Timestamptz(3)
+  lugar         String
+  estado        String         @default("ABIERTA")
+  junta         Junta          @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  asistencia    Asistencia[]
+  obligacion    Obligacion[]
+  convocatorias Convocatoria[]
 
   @@unique([junta_id, id])
   @@index([junta_id, inicio, id], map: "actividad_inicio_idx")
@@ -430,34 +443,36 @@ model PropiedadFoto {
 }
 
 model Sector {
-  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  junta_id      String      @db.Uuid
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id      String           @db.Uuid
   nombre        String
   clasificacion String
   descripcion   String?
-  estado        Estado      @default(ACTIVA)
+  estado        Estado           @default(ACTIVA)
   propiedad     Propiedad[]
-  junta         Junta       @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  junta         Junta            @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
   socio         Socio[]
+  horarios      HorarioSemanal[]
 
   @@unique([junta_id, id])
   @@map("sector")
 }
 
 model Socio {
-  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  junta_id   String       @db.Uuid
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id   String         @db.Uuid
   cedula     String
   nombres    String
   apellidos  String
-  estado     Estado       @default(ACTIVA)
-  sector_id  String?      @db.Uuid
+  estado     Estado         @default(ACTIVA)
+  sector_id  String?        @db.Uuid
   asistencia Asistencia[]
   obligacion Obligacion[]
   pago       Pago[]
   propiedad  Propiedad[]
-  junta      Junta        @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
-  sector     Sector?      @relation(fields: [junta_id, sector_id], references: [junta_id, id], onUpdate: NoAction)
+  vinculos   SocioVinculo[]
+  junta      Junta          @relation(fields: [junta_id], references: [id], onUpdate: NoAction)
+  sector     Sector?        @relation(fields: [junta_id, sector_id], references: [junta_id, id], onUpdate: NoAction)
 
   @@unique([junta_id, cedula])
   @@unique([junta_id, id])
@@ -477,4 +492,131 @@ model TarifaMulta {
   @@unique([junta_id, id])
   @@unique([junta_id, tipo, vigente_desde])
   @@map("tarifa_multa")
+}
+
+// Macroincremento 3: Portal del Socio. Las reglas CHECK, RLS, índices parciales y
+// rutinas de seguridad se mantienen en las migraciones SQL de PostgreSQL.
+model SocioVinculo {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id          String    @db.Uuid
+  socio_id          String    @db.Uuid
+  membresia_id      String    @db.Uuid
+  operador_id       String    @db.Uuid
+  codigo_hash       String?   @unique(map: "socio_vinculo_codigo_key")
+  estado            String    @default("PENDIENTE")
+  vence_en          DateTime  @default(dbgenerated("(statement_timestamp() + interval '24 hours')")) @db.Timestamptz(3)
+  creado_en         DateTime  @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(3)
+  confirmado_en     DateTime? @db.Timestamptz(3)
+  revocado_en       DateTime? @db.Timestamptz(3)
+  revocado_por      String?   @db.Uuid
+  motivo_revocacion String?
+  socio             Socio     @relation(fields: [junta_id, socio_id], references: [junta_id, id], onDelete: Restrict, onUpdate: NoAction)
+  membresia         Membresia @relation(fields: [junta_id, membresia_id], references: [juntaId, id], onDelete: Restrict, onUpdate: NoAction)
+  operador          Cuenta    @relation("VinculoOperador", fields: [operador_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  revocador         Cuenta?   @relation("VinculoRevocador", fields: [revocado_por], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@map("socio_vinculo")
+}
+
+model Convocatoria {
+  id               String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id         String                     @db.Uuid
+  actividad_id     String                     @db.Uuid
+  asunto           String
+  contenido        String
+  titulo_actividad String
+  fecha_actividad  DateTime                   @db.Timestamptz(3)
+  lugar_actividad  String
+  emitida_en       DateTime                   @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(3)
+  estado           String                     @default("PUBLICADA")
+  junta            Junta                      @relation(fields: [junta_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  actividad        Actividad                  @relation(fields: [junta_id, actividad_id], references: [junta_id, id], onDelete: Restrict, onUpdate: NoAction)
+  destinatarios    ConvocatoriaDestinatario[]
+
+  @@unique([junta_id, id])
+  @@index([junta_id, emitida_en(sort: Desc)], map: "convocatoria_fecha_idx")
+  @@map("convocatoria")
+}
+
+model ConvocatoriaDestinatario {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id        String       @db.Uuid
+  convocatoria_id String       @db.Uuid
+  membresia_id    String       @db.Uuid
+  convocatoria    Convocatoria @relation(fields: [junta_id, convocatoria_id], references: [junta_id, id], onDelete: Restrict, onUpdate: NoAction)
+  membresia       Membresia    @relation(fields: [junta_id, membresia_id], references: [juntaId, id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([junta_id, convocatoria_id, membresia_id])
+  @@index([junta_id, membresia_id, convocatoria_id], map: "convocatoria_destinatario_membresia_idx")
+  @@map("convocatoria_destinatario")
+}
+
+model ComunicacionDocumento {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id    String   @db.Uuid
+  tipo        String
+  titulo      String
+  fecha       DateTime @db.Date
+  descripcion String
+  institucion String?
+  archivo     Bytes
+  estado      String   @default("PUBLICADO")
+  creado_en   DateTime @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(3)
+  junta       Junta    @relation(fields: [junta_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([junta_id, id])
+  @@index([junta_id, fecha(sort: Desc), id], map: "comunicacion_documento_fecha_idx")
+  @@map("comunicacion_documento")
+}
+
+model ComunicacionMensaje {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id        String    @db.Uuid
+  remitente_id    String    @db.Uuid
+  destinatario_id String    @db.Uuid
+  texto           String
+  archivo         Bytes?
+  creado_en       DateTime  @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(3)
+  junta           Junta     @relation(fields: [junta_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  remitente       Membresia @relation("MensajeRemitente", fields: [junta_id, remitente_id], references: [juntaId, id], onDelete: Restrict, onUpdate: NoAction)
+  destinatario    Membresia @relation("MensajeDestinatario", fields: [junta_id, destinatario_id], references: [juntaId, id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([junta_id, id])
+  @@index([junta_id, destinatario_id, creado_en(sort: Desc)], map: "comunicacion_mensaje_destinatario_idx")
+  @@index([junta_id, remitente_id, creado_en(sort: Desc)], map: "comunicacion_mensaje_remitente_idx")
+  @@map("comunicacion_mensaje")
+}
+
+model HorarioServicio {
+  id       String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id String           @db.Uuid
+  nombre   String
+  estado   Estado           @default(ACTIVA)
+  junta    Junta            @relation(fields: [junta_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  horarios HorarioSemanal[]
+
+  @@unique([junta_id, id])
+  @@unique([junta_id, nombre])
+  @@map("horario_servicio")
+}
+
+model HorarioSemanal {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  junta_id    String          @db.Uuid
+  servicio_id String          @db.Uuid
+  sector_id   String          @db.Uuid
+  dia         Int
+  inicio      DateTime        @db.Time(0)
+  fin         DateTime        @db.Time(0)
+  desde       DateTime        @db.Date
+  hasta       DateTime        @db.Date
+  estado      String          @default("PUBLICADO")
+  creado_en   DateTime        @default(dbgenerated("statement_timestamp()")) @db.Timestamptz(3)
+  junta       Junta           @relation(fields: [junta_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  servicio    HorarioServicio @relation(fields: [junta_id, servicio_id], references: [junta_id, id], onDelete: Restrict, onUpdate: NoAction)
+  sector      Sector          @relation(fields: [junta_id, sector_id], references: [junta_id, id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([junta_id, id])
+  @@index([junta_id, sector_id, dia, desde, hasta], map: "horario_sector_vigencia_idx")
+  @@map("horario_semanal")
 }

@@ -11,3 +11,5 @@ La preparación de cada especificación precede a la implementación de su capac
 El Macroincremento 2 se divide en [administración comunitaria](administracion-comunitaria/requirements.md) y [finanzas y recursos](finanzas-recursos/requirements.md).
 
 Para esta especificación, parte de las [decisiones de identidad y aislamiento aprobadas](../../docs/architecture/identidad-y-aislamiento.md).
+
+El Macroincremento 3 reúne [comunicaciones](comunicaciones/requirements.md), [portal del socio](portal-socio/requirements.md) y [reportes y horarios](reportes-horarios/requirements.md). La [matriz de trazabilidad](../../docs/traceability/README.md) enlaza las capacidades completas con sus pruebas.
