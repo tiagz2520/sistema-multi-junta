@@ -20,6 +20,7 @@ export function PageTitle({
   return (
     <div className="page-heading">
       <div>
+        <p className="page-eyebrow">OPERACIONES / {title}</p>
         <h1>{title}</h1>
         <p className="muted mt-2">{description}</p>
       </div>

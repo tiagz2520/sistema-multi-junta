@@ -15,7 +15,8 @@ import {
   Section,
   timeLabel,
 } from '../../shared/ui/records';
-import { Feedback } from '../../shared/ui/ui';
+import { Feedback, roleNames } from '../../shared/ui/ui';
+import { ActivityPicker } from '../../shared/ui/activity-picker';
 
 function DownloadAction({
   label,
@@ -101,6 +102,7 @@ export function ConvocationsPage({
                 {(members) => (
                   <ActionForm
                     label="Publicar convocatoria"
+                    disabled={recipients.length === 0}
                     onExpired={onExpired}
                     onCancel={() => setCreating(false)}
                     onSubmit={async (form) => {
@@ -119,14 +121,7 @@ export function ConvocationsPage({
                       setRecipients([]);
                     }}
                   >
-                    <Choice
-                      name="actividadId"
-                      label="Asamblea o minga"
-                      options={rows.map((row) => ({
-                        id: row.id,
-                        label: row.titulo,
-                      }))}
-                    />
+                    <ActivityPicker activities={rows} name="actividadId" />
                     <Field name="asunto" label="Asunto" maxLength={180} />
                     <label>
                       Contenido
@@ -137,25 +132,64 @@ export function ConvocationsPage({
                         rows={4}
                       />
                     </label>
-                    <fieldset className="form-stack">
-                      <legend>Destinatarios (selecciona al menos uno)</legend>
-                      {members.map((member) => (
-                        <label key={member.id}>
-                          <input
-                            type="checkbox"
-                            checked={recipients.includes(member.id)}
-                            onChange={(e) =>
-                              setRecipients((previous) =>
-                                e.target.checked
-                                  ? [...previous, member.id]
-                                  : previous.filter((id) => id !== member.id),
-                              )
+                    <fieldset className="recipient-fieldset">
+                      <legend>Destinatarios</legend>
+                      <div className="recipient-toolbar">
+                        <span>
+                          {recipients.length} seleccionados de {members.length}
+                        </span>
+                        <div className="recipient-toolbar-actions">
+                          <button
+                            type="button"
+                            className="table-link"
+                            onClick={() =>
+                              setRecipients(members.map((member) => member.id))
                             }
-                          />{' '}
-                          {member.usuario} ({member.rol})
-                        </label>
-                      ))}
-                      {members.length === 0 && (
+                            disabled={members.length === 0}
+                          >
+                            Seleccionar todos
+                          </button>
+                          <button
+                            type="button"
+                            className="table-link"
+                            onClick={() => setRecipients([])}
+                            disabled={recipients.length === 0}
+                          >
+                            Limpiar
+                          </button>
+                        </div>
+                      </div>
+                      {members.length > 0 ? (
+                        <ul className="recipient-list">
+                          {members.map((member) => (
+                            <li key={member.id}>
+                              <label className="recipient-item">
+                                <input
+                                  type="checkbox"
+                                  checked={recipients.includes(member.id)}
+                                  onChange={(event) =>
+                                    setRecipients((previous) =>
+                                      event.target.checked
+                                        ? [...previous, member.id]
+                                        : previous.filter(
+                                            (id) => id !== member.id,
+                                          ),
+                                    )
+                                  }
+                                />
+                                <span className="recipient-name">
+                                  {member.usuario}
+                                </span>
+                                <span className="recipient-role">
+                                  {roleNames[
+                                    member.rol as keyof typeof roleNames
+                                  ] ?? member.rol}
+                                </span>
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
                         <Feedback>
                           Sin destinatarios activos para esta junta.
                         </Feedback>
