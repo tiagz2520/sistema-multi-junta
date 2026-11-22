@@ -151,6 +151,9 @@ vite.config.ts.timestamp-*
 # Turbo Repo (https://turborepo.dev/)
 .turbo
 
+# Generated Prisma client
+/apps/api/src/generated/
+
 # Nx (https://nx.dev/)
 .nx/cache
 .nx/workspace-data
