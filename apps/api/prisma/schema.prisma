@@ -8,3 +8,115 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Estado {
+  ACTIVA
+  INACTIVA
+
+  @@map("estado")
+}
+
+enum CodigoRol {
+  SUPER_ADMIN
+  ADMIN_JUNTA
+  SECRETARIA
+  TESORERIA
+  SOCIO
+
+  @@map("codigo_rol")
+}
+
+enum AmbitoRol {
+  PLATAFORMA
+  JUNTA
+
+  @@map("ambito_rol")
+}
+
+enum AmbitoSesion {
+  PREVIA
+  PLATAFORMA
+  JUNTA
+
+  @@map("ambito_sesion")
+}
+
+model Junta {
+  id            String      @id @default(uuid()) @db.Uuid
+  nombre        String
+  tipo          String
+  ruc           String?     @unique
+  estado        Estado      @default(ACTIVA)
+  versionAcceso Int         @default(1) @map("version_acceso")
+  membresias    Membresia[]
+
+  @@map("junta")
+}
+
+model Cuenta {
+  id                       String      @id @default(uuid()) @db.Uuid
+  nombreUsuarioNormalizado String      @unique @map("nombre_usuario_normalizado") @db.VarChar(32)
+  hashContrasena           String      @map("hash_contrasena")
+  estado                   Estado      @default(ACTIVA)
+  requiereCambioContrasena Boolean     @default(false) @map("requiere_cambio_contrasena")
+  versionAcceso            Int         @default(1) @map("version_acceso")
+  rolPlataformaCodigo      CodigoRol?  @map("rol_plataforma_codigo")
+  rolPlataformaAmbito      AmbitoRol   @default(PLATAFORMA) @map("rol_plataforma_ambito")
+  rolPlataforma            Rol?        @relation("RolPlataforma", fields: [rolPlataformaCodigo, rolPlataformaAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
+  membresias               Membresia[]
+  sesiones                 Sesion[]
+
+  @@map("cuenta")
+}
+
+model Rol {
+  codigo     CodigoRol   @id
+  ambito     AmbitoRol
+  nombre     String
+  cuentas    Cuenta[]    @relation("RolPlataforma")
+  membresias Membresia[] @relation("RolJunta")
+
+  @@unique([codigo, ambito])
+  @@map("rol")
+}
+
+model Membresia {
+  id            String    @id @default(uuid()) @db.Uuid
+  juntaId       String    @map("junta_id") @db.Uuid
+  cuentaId      String    @map("cuenta_id") @db.Uuid
+  rolCodigo     CodigoRol @map("rol_codigo")
+  rolAmbito     AmbitoRol @default(JUNTA) @map("rol_ambito")
+  estado        Estado    @default(ACTIVA)
+  versionAcceso Int       @default(1) @map("version_acceso")
+  junta         Junta     @relation(fields: [juntaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  cuenta        Cuenta    @relation(fields: [cuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  rol           Rol       @relation("RolJunta", fields: [rolCodigo, rolAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
+  sesiones      Sesion[]
+
+  @@unique([juntaId, cuentaId])
+  @@unique([juntaId, id, cuentaId])
+  @@index([cuentaId])
+  @@map("membresia")
+}
+
+model Sesion {
+  id                     String       @id @default(uuid()) @db.Uuid
+  huellaToken            String       @unique @map("huella_token")
+  cuentaId               String       @map("cuenta_id") @db.Uuid
+  ambito                 AmbitoSesion
+  juntaId                String?      @map("junta_id") @db.Uuid
+  membresiaId            String?      @map("membresia_id") @db.Uuid
+  versionAccesoCuenta    Int          @default(1) @map("version_acceso_cuenta")
+  versionAccesoJunta     Int?         @map("version_acceso_junta")
+  versionAccesoMembresia Int?         @map("version_acceso_membresia")
+  emitidaEn              DateTime     @default(now()) @map("emitida_en") @db.Timestamptz(3)
+  expiraAbsolutaEn       DateTime     @map("expira_absoluta_en") @db.Timestamptz(3)
+  expiraInactividadEn    DateTime     @map("expira_inactividad_en") @db.Timestamptz(3)
+  revocadaEn             DateTime?    @map("revocada_en") @db.Timestamptz(3)
+  cuenta                 Cuenta       @relation(fields: [cuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  membresia              Membresia?   @relation(fields: [juntaId, membresiaId, cuentaId], references: [juntaId, id, cuentaId], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([cuentaId])
+  @@index([juntaId, membresiaId, cuentaId])
+  @@map("sesion")
+}

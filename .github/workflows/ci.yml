@@ -23,11 +23,18 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: docker compose --env-file .env.example config --quiet
-      - name: Verificar privilegios de PostgreSQL
+      - name: Verificar la persistencia con PostgreSQL aislado
         run: |
-          docker compose --env-file .env.example -p multi-junta-ci up -d --wait postgres
-          docker compose --env-file .env.example -p multi-junta-ci run --rm --no-deps postgres-roles
           set -a
           source .env.example
           set +a
+          export POSTGRES_DB=multi_junta_test_ci
+          export APP_DATABASE_URL="postgresql://multi_junta_app:${POSTGRES_APP_PASSWORD}@127.0.0.1:${POSTGRES_PORT}/${POSTGRES_DB}?schema=multi_junta"
+          export MIGRATION_DATABASE_URL="postgresql://multi_junta_migrator:${POSTGRES_MIGRATION_PASSWORD}@127.0.0.1:${POSTGRES_PORT}/${POSTGRES_DB}?schema=multi_junta"
+          export IDENTITY_TEST_ADMIN_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${POSTGRES_PORT}/${POSTGRES_DB}"
+          trap 'docker compose --env-file .env.example -p multi-junta-ci down' EXIT
+          docker compose --env-file .env.example -p multi-junta-ci up -d --wait postgres
+          docker compose --env-file .env.example -p multi-junta-ci run --rm --no-deps postgres-roles
           npm run test:db
+          npm exec --workspace @multi-junta/api -- prisma migrate deploy
+          npm run test:db:identity

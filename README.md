@@ -32,7 +32,7 @@ Si un puerto está ocupado, ajusta `WEB_PORT`, `PORT` o `POSTGRES_PORT` en `.env
 | Prisma CLI y migraciones                 | `multi_junta_migrator` | `POSTGRES_MIGRATION_PASSWORD` aprovisiona la contraseña. `MIGRATION_DATABASE_URL` conecta Prisma CLI al esquema `multi_junta`.                           |
 | Consultas de NestJS                      | `multi_junta_app`      | `POSTGRES_APP_PASSWORD` aprovisiona la contraseña. Compose pasa los parámetros `PG*` de este rol a la API. Desde el anfitrión se usa `APP_DATABASE_URL`. |
 
-`postgres-roles` espera a PostgreSQL, aprovisiona los roles y el esquema, y debe terminar correctamente antes de que Compose arranque la API. El migrador es propietario de `multi_junta`. La API tiene `CONNECT` y `USAGE` sobre la base y el esquema, respectivamente. Las futuras migraciones concederán permisos por objeto según cada caso de uso. Este incremento prepara el límite de privilegios para RLS.
+`postgres-roles` espera a PostgreSQL, aprovisiona los roles y el esquema, y debe terminar correctamente antes de que Compose arranque la API. El migrador es propietario de `multi_junta`. La API tiene `CONNECT` y `USAGE` sobre la base y el esquema, respectivamente. La migración de identidad activa RLS forzada en membresías y sesiones y reserva el acceso a las tablas de identidad. Las futuras migraciones deberán conceder permisos mínimos por objeto y aplicar las políticas RLS correspondientes antes de permitir acceso a datos operativos.
 
 ### Actualizar un volumen local del Incremento 1A
 
@@ -51,7 +51,7 @@ npm ci
 npm run dev
 ```
 
-`npm run dev` inicia las dos aplicaciones en modo de desarrollo con recarga. Si PowerShell bloquea `npm.ps1`, utiliza `npm.cmd` en los mismos comandos. Prisma se genera al iniciar o compilar la API. Cuando existan migraciones, aplica las revisadas con `npm exec --workspace @multi-junta/api -- prisma migrate deploy`. Para generar migraciones con `migrate dev` se necesitará una base sombra de desarrollo preparada por separado.
+`npm run dev` inicia las dos aplicaciones en modo de desarrollo con recarga. Si PowerShell bloquea `npm.ps1`, utiliza `npm.cmd` en los mismos comandos. Prisma se genera al iniciar o compilar la API. Después de aprovisionar los roles, aplica las migraciones revisadas con `npm exec --workspace @multi-junta/api -- prisma migrate deploy`. Prisma CLI usa `MIGRATION_DATABASE_URL`. Este comando también se aplica sobre una base aprovisionada en 1B.1 y conserva los datos existentes. Para generar migraciones con `migrate dev` se necesitará una base sombra de desarrollo preparada por separado.
 
 ## Verificación
 
@@ -68,12 +68,14 @@ docker compose --env-file .env.example config --quiet
 
 Con PostgreSQL aprovisionado, ejecuta `npm run build` y `npm run test:db` para verificar los privilegios efectivos de la cuenta de la API. Si usas todo el entorno en contenedores, ejecuta `docker compose exec -T api npm run test:db`. Ejecuta estas pruebas con datos sintéticos en un entorno de desarrollo.
 
+`npm run test:db:identity` verifica restricciones y aislamiento con PostgreSQL real. Requiere una base de pruebas dedicada cuyo nombre empiece por `multi_junta_test_`, roles aprovisionados, las migraciones aplicadas y la API compilada. Exporta `APP_DATABASE_URL` con el rol operativo, `MIGRATION_DATABASE_URL` con el migrador e `IDENTITY_TEST_ADMIN_URL` con un superusuario exclusivo de la base de pruebas. Las tres URLs deben apuntar a la misma base. La suite usa contextos y datos sintéticos y revoca sus permisos temporales al finalizar. [Configuración de la suite en CI](.github/workflows/ci.yml)
+
 ## Estructura
 
 - `apps/web/` contiene React, TypeScript, Vite y Tailwind CSS.
 - `apps/api/` contiene NestJS, Prisma y los módulos de Plataforma, Administrativa, Financiera y Comunicaciones.
 - `packages/api-client/` reserva el espacio para el cliente derivado del contrato OpenAPI.
 - `tests/e2e/` contiene la prueba de comunicación y `ops/postgres/` contiene el aprovisionamiento de roles.
-- `.kiro/specs/` prepara la estructura SDD. [AGENTS.md](AGENTS.md) recoge las decisiones y reglas de desarrollo.
+- `.kiro/specs/` contiene la especificación de identidad y aislamiento. [AGENTS.md](AGENTS.md) recoge las decisiones y reglas de desarrollo.
 
-Las sesiones, la autorización, las políticas de aislamiento y las funcionalidades de negocio corresponden a incrementos posteriores.
+1B.2 incluye el esquema de sesiones y el aislamiento de persistencia. La autenticación, la emisión y revocación de sesiones, la autorización por rol y titularidad y las funcionalidades de negocio corresponden a incrementos posteriores.
