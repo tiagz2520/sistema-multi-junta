@@ -170,6 +170,65 @@ export class PortalService {
     });
   }
 
+  properties(request: IdentityRequest, juntaId: string) {
+    return this.operations.run(
+      request,
+      juntaId,
+      false,
+      (tx) =>
+        tx.$queryRaw<
+          {
+            id: string;
+            nombre: string;
+            dimensiones: string;
+            sectorId: string;
+            sectorNombre: string | null;
+            latitud: string | null;
+            longitud: string | null;
+            tieneFoto: boolean;
+          }[]
+        >`
+        SELECT p.id, p.nombre, p.dimensiones, p.sector_id AS "sectorId",
+          sec.nombre AS "sectorNombre", p.latitud::text AS latitud,
+          p.longitud::text AS longitud,
+          EXISTS (
+            SELECT 1 FROM multi_junta.propiedad_foto f
+            WHERE f.junta_id=p.junta_id AND f.propiedad_id=p.id
+          ) AS "tieneFoto"
+        FROM multi_junta.propiedad p
+        LEFT JOIN multi_junta.sector sec
+          ON sec.junta_id=p.junta_id AND sec.id=p.sector_id
+        WHERE p.junta_id=${juntaId}::uuid
+          AND p.estado='ACTIVA'
+          AND p.socio_id=multi_junta.portal_socio_actual(${juntaId}::uuid)
+        ORDER BY p.nombre, p.id
+      `,
+    );
+  }
+
+  async propertyPhoto(
+    request: IdentityRequest,
+    juntaId: string,
+    propertyId: string,
+  ) {
+    const [photo] = await this.operations.run(
+      request,
+      juntaId,
+      false,
+      (tx) =>
+        tx.$queryRaw<{ imagen: Uint8Array }[]>`
+        SELECT f.imagen FROM multi_junta.propiedad_foto f
+        JOIN multi_junta.propiedad p
+          ON p.junta_id=f.junta_id AND p.id=f.propiedad_id
+        WHERE f.junta_id=${juntaId}::uuid AND f.propiedad_id=${propertyId}::uuid
+          AND p.estado='ACTIVA'
+          AND p.socio_id=multi_junta.portal_socio_actual(${juntaId}::uuid)
+      `,
+    );
+    if (!photo) throw new NotFoundException('No se encontró la fotografía.');
+    return Buffer.from(photo.imagen);
+  }
+
   attendance(request: IdentityRequest, juntaId: string) {
     return this.operations.run(
       request,

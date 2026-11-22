@@ -2,9 +2,10 @@ import {
   api,
   type Invitacion,
   type Membresia,
+  type PropiedadPropia,
   type Socio,
 } from '@multi-junta/api-client';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useCommand, useResource } from '../../shared/api/use-api';
 import {
   ActionForm,
@@ -23,6 +24,7 @@ import {
   money,
 } from '../../shared/ui/records';
 import { Feedback } from '../../shared/ui/ui';
+import { PropertyMap } from '../../shared/ui/property-map';
 
 function LinkStatus({ status }: { status: string }) {
   return <span className="muted">{stateLabel(status)}</span>;
@@ -314,6 +316,92 @@ export function PortalAdminPage({
   );
 }
 
+function PrivatePropertyPhoto({
+  juntaId,
+  propertyId,
+  nombre,
+  onExpired,
+}: {
+  juntaId: string;
+  propertyId: string;
+  nombre: string;
+  onExpired: () => void;
+}) {
+  const photo = useResource(
+    useCallback(
+      (signal: AbortSignal) =>
+        api.portal.propertyPhoto(juntaId, propertyId, signal),
+      [juntaId, propertyId],
+    ),
+    onExpired,
+  );
+  const [imageUrl, setImageUrl] = useState('');
+  const blob = photo.state.kind === 'ready' ? photo.state.data : null;
+  useEffect(() => {
+    if (!blob) return;
+    const objectUrl = URL.createObjectURL(blob);
+    setImageUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [blob]);
+
+  return (
+    <Resource resource={photo}>
+      {() =>
+        imageUrl ? (
+          <img
+            className="property-photo"
+            src={imageUrl}
+            alt={`Fotografía de ${nombre}`}
+          />
+        ) : (
+          <p className="muted">Preparando fotografía…</p>
+        )
+      }
+    </Resource>
+  );
+}
+
+function MemberProperty({
+  property,
+  juntaId,
+  onExpired,
+}: {
+  property: PropiedadPropia;
+  juntaId: string;
+  onExpired: () => void;
+}) {
+  return (
+    <article className="panel form-panel mb-4">
+      <h3 className="mb-3">{property.nombre}</h3>
+      <dl className="data-grid">
+        <div>
+          <dt>Dimensiones</dt>
+          <dd>{property.dimensiones}</dd>
+        </div>
+        <div>
+          <dt>Sector asignado</dt>
+          <dd>{property.sectorNombre ?? 'No disponible'}</dd>
+        </div>
+      </dl>
+      <PropertyMap
+        nombre={property.nombre}
+        latitud={property.latitud}
+        longitud={property.longitud}
+      />
+      {property.tieneFoto && (
+        <div className="mt-3">
+          <PrivatePropertyPhoto
+            juntaId={juntaId}
+            propertyId={property.id}
+            nombre={property.nombre}
+            onExpired={onExpired}
+          />
+        </div>
+      )}
+    </article>
+  );
+}
+
 export function PortalMemberPage({
   juntaId,
   csrfToken,
@@ -324,6 +412,13 @@ export function PortalMemberPage({
   const profile = useResource(
     useCallback(
       (signal: AbortSignal) => api.portal.profile(juntaId, signal),
+      [juntaId],
+    ),
+    onExpired,
+  );
+  const properties = useResource(
+    useCallback(
+      (signal: AbortSignal) => api.portal.properties(juntaId, signal),
       [juntaId],
     ),
     onExpired,
@@ -383,6 +478,7 @@ export function PortalMemberPage({
                     await api.portal.confirm(juntaId, code, csrfToken);
                     setCode('');
                     profile.reload();
+                    properties.reload();
                     attendance.reload();
                     obligations.reload();
                     payments.reload();
@@ -411,6 +507,26 @@ export function PortalMemberPage({
           )
         }
       </Resource>
+      <Section title="Mis predios y recursos asignados">
+        <Resource resource={properties}>
+          {(rows) =>
+            rows.length ? (
+              rows.map((property) => (
+                <MemberProperty
+                  key={property.id}
+                  property={property}
+                  juntaId={juntaId}
+                  onExpired={onExpired}
+                />
+              ))
+            ) : (
+              <Feedback>
+                No tienes predios o recursos activos asignados en esta junta.
+              </Feedback>
+            )
+          }
+        </Resource>
+      </Section>
       <Section title="Mis asistencias">
         <Resource resource={attendance}>
           {(rows) => (

@@ -5,6 +5,7 @@
 - [x] C2. Revocación, auditoría y RLS por titularidad. PS-02 y PS-04.
 - [x] C3. Pantallas de vinculación y portal. PS-01 a PS-04.
 - [x] C4. Pruebas con dos socios de la misma junta y otra organización. PS-02 a PS-04.
+- [x] C5. Predios y fotos propios con FORCE RLS, vista Google Maps consentida y pruebas de bajas y aislamiento. PS-05.
 
 ## Evidencias
 

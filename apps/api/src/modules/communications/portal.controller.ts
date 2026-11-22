@@ -72,6 +72,29 @@ export class PortalController {
     return this.portal.profile(request, junta);
   }
 
+  @Get('propiedades')
+  @operationAccess(['SOCIO'])
+  properties(
+    @Req() request: IdentityRequest,
+    @Param('juntaId', ParseUUIDPipe) junta: string,
+  ) {
+    return this.portal.properties(request, junta);
+  }
+
+  @Get('propiedades/:id/foto')
+  @operationAccess(['SOCIO'])
+  @Header('X-Content-Type-Options', 'nosniff')
+  @Header('Cross-Origin-Resource-Policy', 'same-origin')
+  @Header('Cache-Control', 'private, no-store')
+  async propertyPhoto(
+    @Req() request: IdentityRequest,
+    @Param('juntaId', ParseUUIDPipe) junta: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const photo = await this.portal.propertyPhoto(request, junta, id);
+    return new StreamableFile(photo, { type: 'image/jpeg' });
+  }
+
   @Get('asistencias')
   @operationAccess(['SOCIO'])
   attendance(

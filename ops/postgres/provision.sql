@@ -138,7 +138,15 @@ BEGIN
                 'multi_junta.op_visible(uuid,text[])',
                 'multi_junta.op_bloquear(uuid,text)',
                 'multi_junta.op_junta_datos(uuid)',
-                'multi_junta.op_auditar_tabla()'
+                'multi_junta.op_auditar_tabla()',
+                'multi_junta.m3_membresia_actual(uuid)',
+                'multi_junta.portal_socio_actual(uuid)',
+                'multi_junta.portal_invitar(uuid,uuid,uuid,text,text,text)',
+                'multi_junta.portal_confirmar(uuid,text)',
+                'multi_junta.portal_revocar(uuid,uuid,text)',
+                'multi_junta.comm_destinatarios(uuid)',
+                'multi_junta.comm_mensaje_permitido(uuid,uuid,uuid)',
+                'multi_junta.comm_destinatario_propio(uuid,uuid)'
               ]) AS allowed(signature)
               WHERE to_regprocedure(allowed.signature)::oid = routine.oid
             )
