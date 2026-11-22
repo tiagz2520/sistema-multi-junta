@@ -51,6 +51,9 @@ services:
       PGDATABASE: ${POSTGRES_DB:?Configura POSTGRES_DB en .env}
       PGUSER: multi_junta_app
       PGPASSWORD: ${POSTGRES_APP_PASSWORD:?Configura POSTGRES_APP_PASSWORD en .env}
+      AUTH_ORIGIN: ${AUTH_ORIGIN:-http://127.0.0.1:5173}
+      AUTH_IDLE_SECONDS: ${AUTH_IDLE_SECONDS:-1800}
+      AUTH_ABSOLUTE_SECONDS: ${AUTH_ABSOLUTE_SECONDS:-43200}
     ports:
       - '127.0.0.1:${PORT:-3000}:3000'
     depends_on:

@@ -38,3 +38,4 @@ jobs:
           npm run test:db
           npm exec --workspace @multi-junta/api -- prisma migrate deploy
           npm run test:db:identity
+          npm run test:db:auth

@@ -15,6 +15,9 @@ if (existsSync(envFile)) {
     'PGDATABASE',
     'PGUSER',
     'PGPASSWORD',
+    'AUTH_ORIGIN',
+    'AUTH_IDLE_SECONDS',
+    'AUTH_ABSOLUTE_SECONDS',
   ];
   for (const key of runtimeVariables) {
     if (process.env[key] === undefined && localEnv[key] !== undefined) {
