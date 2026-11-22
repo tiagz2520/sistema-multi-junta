@@ -2,13 +2,131 @@
 
 Sistema de Gestión Integral para Juntas Parroquiales y Comunitarias del Ecuador. El monorepositorio reúne la web, la API y PostgreSQL. La web muestra el estado de la API a través del proxy local de Vite. El Incremento 1B.1 separa las credenciales de PostgreSQL para el aprovisionamiento, las migraciones y la ejecución de la API.
 
-## Desarrollo con Docker Compose
+## Inicio rápido para compañeros
 
-Requiere Docker con contenedores Linux y Docker Compose. Desde la raíz, copia `.env.example` a `.env`. Los valores son desechables y están destinados al entorno local.
+Esta es la ruta recomendada para **compañeros que descargan el proyecto por primera vez** y quieren ver la interfaz Editorial Operativo B y las cinco juntas de riego de Tungurahua con datos sintéticos. No necesita una base de datos compartida ni modificar el código. Cada compañero trabaja con **su propia base de demostración**.
+
+> **Importante:** todo lo descrito aquí es **solo para localhost y uso académico**. Las contraseñas, RUC, cédulas, socios, multas, pagos, ubicaciones de parcelas y actividades son ficticios. Los nombres de las cinco juntas se basan en referencias públicas; no representan sus registros oficiales. No publiques este entorno ni uses los valores de ejemplo con datos reales.
+
+### Requisitos previos
+
+- **Git** para clonar el repositorio.
+- **Docker Desktop** abierto y en modo **contenedores Linux**, con Docker Compose.
+- **Node.js 24.15 o posterior de la línea 24, o Node.js 26**, con **npm 11 o posterior**. Se utiliza en el equipo para migraciones y preparación de datos; los servicios web y API corren en Docker.
+- **Windows PowerShell** para copiar los comandos siguientes. En macOS/Linux, usa un terminal Bash y adapta `Copy-Item` a `cp`.
+
+Verifica la instalación de Git, Node y Docker con `git --version`, `node --version`, `npm --version` y `docker compose version`.
+
+### Primera ejecución, desde cero
+
+**1. Descargar el proyecto y crear la configuración local.**
+
+```powershell
+git clone https://github.com/tiagz2520/sistema-multi-junta.git
+cd sistema-multi-junta
+Copy-Item .env.demo.example .env
+```
+
+El archivo `.env.demo.example` está preparado exclusivamente para esta demostración: utiliza la base `multi_junta_demo_tungurahua` y un ejemplo de contraseña **ficticia**. Si ya tienes un archivo `.env`, **no lo sobrescribas**; revísalo antes de continuar. El archivo `.env` no se sube a Git.
+
+**2. Instalar dependencias del equipo y preparar PostgreSQL.**
+
+```powershell
+npm ci
+docker compose -p multi-junta-grupo up -d --wait postgres
+docker compose -p multi-junta-grupo run --rm --no-deps postgres-roles
+```
+
+Usamos el proyecto Compose `multi-junta-grupo` en todos los comandos, para identificar fácilmente **un solo entorno de presentación** en Docker Desktop. `postgres-roles` prepara los permisos de la base antes de aplicar las migraciones.
+
+**3. Crear las tablas, compilar la API y cargar las cinco juntas.**
+
+```powershell
+npm exec --workspace @multi-junta/api -- prisma migrate deploy
+npm run build -w @multi-junta/api
+node --env-file=.env scripts/demo-operativo.mjs
+```
+
+Espera a que aparezcan los mensajes `Presentación completada` para las cinco juntas. El proceso crea cuentas, sectores, socios ficticios, actividades, tarifas, asistencias, multas, predios y vínculos del Portal del Socio. **No requiere ingresar socios ni usuarios manualmente** para comenzar la presentación.
+
+**4. Iniciar la aplicación completa.**
+
+```powershell
+docker compose -p multi-junta-grupo up -d --build --wait
+docker compose -p multi-junta-grupo ps
+```
+
+Abre **[http://127.0.0.1:5173](http://127.0.0.1:5173)**. El inicio de sesión debe hacerse desde esa dirección exacta, **no desde `localhost:5173`**. La API se puede comprobar en [http://127.0.0.1:3000/api/v1/health](http://127.0.0.1:3000/api/v1/health).
+
+### Cuentas para la demostración
+
+Todas las cuentas siguientes se crean con la contraseña local **`JuntaDemo#2026-Manual!`**, definida en `DEMO_PASSWORD` dentro de `.env`. Es una contraseña sintética para pruebas: **no reutilizar en producción ni con datos reales**. Si eliges otra contraseña antes de preparar los datos, usa esa misma al ingresar. Las contraseñas de cuentas ya existentes no se restablecen automáticamente.
+
+| Junta de riego (referencia)            | Administrador                          | Secretaría                   | Tesorería                   | Socio                   |
+| -------------------------------------- | -------------------------------------- | ---------------------------- | --------------------------- | ----------------------- |
+| **Plataforma completa**                | `demo-plataforma` (Superadministrador) | —                            | —                           | —                       |
+| **Acequia Mocha Huachi** · Cevallos    | `demo-rio-admin`                       | `demo-rio-secretaria`        | `demo-rio-tesoreria`        | `demo-rio-socio`        |
+| **Quillán La Playa** · Ambato          | `demo-valle-admin`                     | `demo-valle-secretaria`      | `demo-valle-tesoreria`      | `demo-valle-socio`      |
+| **Acequia Lalama** · Ambato            | `demo-lalama-admin`                    | `demo-lalama-secretaria`     | `demo-lalama-tesoreria`     | `demo-lalama-socio`     |
+| **Loro Guachana El Molino** · Patate   | `demo-loro-admin`                      | `demo-loro-secretaria`       | `demo-loro-tesoreria`       | `demo-loro-socio`       |
+| **Santa Rosa La Clementina** · Pelileo | `demo-clementina-admin`                | `demo-clementina-secretaria` | `demo-clementina-tesoreria` | `demo-clementina-socio` |
+
+**Recorrido sugerido:** inicia con `demo-plataforma` para mostrar las cinco juntas; después usa `demo-rio-admin`, `demo-rio-secretaria` y `demo-rio-tesoreria` para recorrer el padrón, las asambleas y mingas, las convocatorias, multas y reportes. Finalmente entra como `demo-rio-socio` para mostrar el portal personal. Más detalles en la [guía de demostración](docs/guia-demostracion.md).
+
+### Cómo volver a ejecutarlo después
+
+Abre PowerShell en la carpeta del repositorio. No vuelvas a copiar `.env.demo.example` sobre tu configuración existente.
+
+```powershell
+git switch main
+git pull --ff-only origin main
+docker compose -p multi-junta-grupo up -d --build --wait
+```
+
+Para **detener** los servicios sin eliminar el volumen de la base de datos:
+
+```powershell
+docker compose -p multi-junta-grupo down
+```
+
+Para **volver a iniciarlos** sin reconstruir las imágenes:
+
+```powershell
+docker compose -p multi-junta-grupo up -d --wait
+```
+
+No ejecutes `docker compose down -v` ni borres volúmenes si quieres conservar los registros. La semilla es repetible; si necesitas ejecutarla de nuevo, usa `node --env-file=.env scripts/demo-operativo.mjs` después de tener PostgreSQL disponible. Tras cambios de esquema en futuras versiones, aplica las migraciones correspondientes antes de iniciar la API.
+
+### Problemas frecuentes y soluciones
+
+| Problema                                                  | Qué comprobar                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **«Origen de solicitud no autorizado» al iniciar sesión** | Abre la URL exacta de `AUTH_ORIGIN`: por defecto **`http://127.0.0.1:5173`**. `http://localhost:5173` es un origen distinto. Si cambiaste `AUTH_ORIGIN` en `.env`, vuelve a crear el contenedor `api` para que lea el nuevo valor.                                                                                                       |
+| **Puerto ocupado** (`5173`, `3000` o `5433`)              | Antes del primer arranque, modifica `WEB_PORT`, `PORT` o `POSTGRES_PORT` en `.env`. Haz coincidir `AUTH_ORIGIN` con `WEB_PORT` y actualiza `APP_DATABASE_URL`, `MIGRATION_DATABASE_URL` y `DEMO_ADMIN_DATABASE_URL` si cambias `POSTGRES_PORT`. `API_PROXY_TARGET` apunta al puerto nuevo solo cuando se ejecuta la web fuera de Docker. |
+| **La API no inicia / faltan tablas**                      | Comprueba que se ejecutaron `postgres-roles` y `prisma migrate deploy`. Revisa `docker compose -p multi-junta-grupo logs api postgres-roles`.                                                                                                                                                                                            |
+| **No aparecen las juntas o las cuentas demo**             | Verifica que la base configurada sea `multi_junta_demo_…` y ejecuta `node --env-file=.env scripts/demo-operativo.mjs` tras compilar la API. No utilices la base normal `multi_junta` para cargar la demo.                                                                                                                                |
+| **`npm.ps1` está bloqueado por PowerShell**               | Repite los comandos npm utilizando `npm.cmd` en lugar de `npm`.                                                                                                                                                                                                                                                                          |
+| **La web no refleja los cambios**                         | Tras actualizar `main`, ejecuta `docker compose -p multi-junta-grupo up -d --build --wait web` y recarga el navegador con `Ctrl + Shift + R`.                                                                                                                                                                                            |
+
+Los puertos del equipo se configuran **antes de crear los contenedores**; cambiar `POSTGRES_DB` o sus credenciales después de haber creado un volumen existente no renombra la base ni cambia automáticamente los usuarios de PostgreSQL. No borres el volumen para intentar corregir un error sin antes respaldar los datos.
+
+Si se requiere trabajar en el código en lugar de presentar el sistema, consulta el apartado [Desarrollo sin contenedores para la web y la API](#desarrollo-sin-contenedores-para-la-web-y-la-api).
+
+---
+
+## Desarrollo con Docker Compose (sin datos de presentación)
+
+Este es el entorno base para desarrollar con una **base vacía**, no la demostración precargada. Para mostrar las cinco juntas y acceder con usuarios preparados, sigue el [inicio rápido para compañeros](#inicio-rápido-para-compañeros).
+
+Requiere Docker con contenedores Linux, Docker Compose, Node.js y npm. Desde la raíz, copia `.env.example` a `.env`, prepara PostgreSQL y ejecuta las migraciones **antes** de iniciar la API:
 
 ```powershell
 Copy-Item .env.example .env
-docker compose up --build --wait
+npm ci
+docker compose up -d --wait postgres
+docker compose run --rm --no-deps postgres-roles
+npm exec --workspace @multi-junta/api -- prisma migrate deploy
+docker compose up -d --build --wait
 ```
 
 En Bash, usa `cp .env.example .env` para crear el archivo. Con la configuración de ejemplo, los servicios escuchan en `127.0.0.1`.
@@ -48,6 +166,7 @@ Instala Node.js 24 LTS desde la versión 24.15 o Node.js 26 LTS, y npm 11 o post
 docker compose up -d --wait postgres
 docker compose run --rm --no-deps postgres-roles
 npm ci
+npm exec --workspace @multi-junta/api -- prisma migrate deploy
 npm run dev
 ```
 
