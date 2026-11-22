@@ -74,6 +74,18 @@ test(
       }),
       201,
     );
+    const predio = await responseData(
+      await secretaryApi(base + '/recursos/propiedades', 'POST', {
+        socioId: member.id,
+        sectorId: sector.id,
+        nombre: 'Predio demostración Maps',
+        dimensiones: '25 x 40 m',
+        latitud: '-1.243100',
+        longitud: '-78.618700',
+      }),
+      201,
+    );
+    assert.ok(predio.id);
     const activity = await responseData(
       await secretaryApi(base + '/administracion/actividades', 'POST', {
         tipo: 'ASAMBLEA',
@@ -134,6 +146,32 @@ test(
     );
     await socio.getByText('María SocioPrueba').waitFor();
     assert.equal(await button(socio, 'Mi portal').count(), 1);
+    await socio.getByText('Predio demostración Maps').waitFor();
+    await socio.getByText('25 x 40 m').waitFor();
+    const googleLink = socio.getByRole('link', {
+      name: 'Abrir en Google Maps',
+    });
+    assert.match(
+      (await googleLink.getAttribute('href')) ?? '',
+      /google\.com\/maps\/search/,
+    );
+    assert.match(
+      (await googleLink.getAttribute('href')) ?? '',
+      /-1\.2431%2C-78\.6187/,
+    );
+    assert.equal(
+      await socio.locator('iframe[title*="Ubicación de Predio"]').count(),
+      0,
+    );
+    await button(socio, 'Mostrar mapa').click();
+    const mapFrame = socio.locator('iframe[title*="Ubicación de Predio"]');
+    await mapFrame.waitFor();
+    assert.match(
+      (await mapFrame.getAttribute('src')) ?? '',
+      /maps\.google\.com/,
+    );
+    await button(socio, 'Ocultar mapa').click();
+    assert.equal(await mapFrame.count(), 0);
 
     const secretary = await enter(browser, origin, a.secretaria, a);
     await button(secretary, 'Convocatorias').click();

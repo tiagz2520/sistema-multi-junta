@@ -28,7 +28,8 @@ import {
   stateLabel,
   timeLabel,
 } from '../../shared/ui/records';
-import { Feedback, Status } from '../../shared/ui/ui';
+import { Status } from '../../shared/ui/ui';
+import { PropertyMap } from '../../shared/ui/property-map';
 import { MemberChoice } from '../administration/registry-page';
 
 const pricePattern = '[0-9]{1,12}([.,][0-9]{1,2})?';
@@ -877,7 +878,12 @@ function PropertyDetail(
               <PropertyRelations {...props} property={property} />
             )}
             <Section title="Ubicación geográfica">
-              <CoordinateGrid property={property} />
+              <PropertyMap
+                key={`${property.id}:${property.latitud}:${property.longitud}`}
+                nombre={property.nombre}
+                latitud={property.latitud}
+                longitud={property.longitud}
+              />
             </Section>
             <Section title="Foto de la propiedad">
               {property.tieneFoto && (
@@ -984,37 +990,6 @@ function PropertyRelations({
         </div>
       </dl>
     </Section>
-  );
-}
-
-function CoordinateGrid({ property }: { property: Propiedad }) {
-  const { latitud, longitud } = property;
-  if (latitud == null || longitud == null)
-    return (
-      <Feedback>Esta propiedad no tiene coordenadas registradas.</Feedback>
-    );
-  const x = ((Number(longitud) + 180) * 100) / 360;
-  const y = ((90 - Number(latitud)) * 100) / 180;
-  return (
-    <>
-      <div
-        className="geo-grid"
-        role="img"
-        aria-label={`Latitud ${latitud} grados, longitud ${longitud} grados`}
-      >
-        <span className="geo-north" aria-hidden="true">
-          N
-        </span>
-        <span
-          className="geo-marker"
-          style={{ left: `${x}%`, top: `${y}%` }}
-          aria-hidden="true"
-        />
-      </div>
-      <p className="muted mt-2 text-sm">
-        Latitud {latitud}° · Longitud {longitud}°
-      </p>
-    </>
   );
 }
 

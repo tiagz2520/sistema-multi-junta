@@ -30,6 +30,17 @@ export interface PerfilSocio {
   sectorId: string | null;
   sectorNombre: string | null;
 }
+export interface PropiedadPropia {
+  id: string;
+  nombre: string;
+  dimensiones: string;
+  sectorId: string;
+  sectorNombre: string | null;
+  latitud: string | null;
+  longitud: string | null;
+  tieneFoto: boolean;
+}
+
 export interface AsistenciaPropia {
   id: string;
   estado: 'PRESENTE' | 'AUSENTE' | 'JUSTIFICADO' | null;
@@ -99,6 +110,13 @@ export function portalApi(request: ApiRequest) {
       ),
     profile: (junta: string, signal?: AbortSignal) =>
       request<{ perfil: PerfilSocio | null }>(base(junta) + '/perfil', {
+        signal,
+      }),
+    properties: (junta: string, signal?: AbortSignal) =>
+      request<PropiedadPropia[]>(base(junta) + '/propiedades', { signal }),
+    propertyPhoto: (junta: string, id: string, signal?: AbortSignal) =>
+      request<Blob>(item(base(junta) + '/propiedades', id) + '/foto', {
+        responseType: 'blob',
         signal,
       }),
     attendance: (junta: string, signal?: AbortSignal) =>
