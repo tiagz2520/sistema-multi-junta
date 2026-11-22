@@ -1,0 +1,9 @@
+.git
+**/node_modules
+**/dist
+**/coverage
+**/.env*
+**/*.pdf
+**/*.tsbuildinfo
+**/npm-debug.log*
+apps/api/src/generated

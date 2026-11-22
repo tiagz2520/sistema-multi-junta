@@ -1,0 +1,38 @@
+{
+  "name": "sistema-multi-junta",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": "^24.15.0 || ^26.0.0",
+    "npm": ">=11"
+  },
+  "scripts": {
+    "dev": "concurrently --kill-others --names api,web \"npm run dev -w @multi-junta/api\" \"npm run dev -w @multi-junta/web\"",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "test": "npm run test --workspaces --if-present",
+    "test:smoke": "node --env-file-if-exists=.env --test tests/e2e/health.test.mjs",
+    "db:generate": "npm run db:generate -w @multi-junta/api",
+    "db:validate": "npm run db:validate -w @multi-junta/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "concurrently": "^10.0.7",
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "effect": "3.22.5"
+    }
+  }
+}
