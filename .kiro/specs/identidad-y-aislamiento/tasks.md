@@ -53,43 +53,58 @@
 
 Las pruebas ejecutables están en [identidad](../../../apps/api/test/identity.integration.mjs) y [privilegios de PostgreSQL](../../../apps/api/test/postgres.integration.mjs). La vinculación de la sesión con el contexto de junta de CA-06.1, la verificación de estados durante la autenticación, la revocación efectiva y la titularidad entre socios de la misma junta se validarán en las tareas posteriores.
 
-## Cortes posteriores de identidad y autorización
+## Corte de autenticación y autorización inicial de 1B.3
 
-- [ ] 7. Preparar la consulta exacta y la verificación de credenciales
+El alcance y el contrato previo a la junta se registran en [las decisiones técnicas de 1B.3](design.md#decisiones-técnicas-de-1b3). La cobertura se ejecuta con `npm run test:db:auth` sobre una base PostgreSQL aislada. Las pruebas de titularidad de este corte corresponden a la membresía propia. El alta funcional, la recuperación y los recursos de negocio quedan en tareas posteriores.
+
+- [x] 7. Preparar la consulta exacta y la verificación de credenciales
   - **Depende de** Tarea 6 y D-03 y D-05 sobre credenciales y frontera previa a la junta.
   - **Requisitos** [RI-03](requirements.md#ri-03-autenticación) CA-03.1 y CA-03.3, y CA-06.4.
-  - **Componentes** `apps/api/src/modules/platform/identity/`, permisos por objeto en la migración correspondiente y `apps/api/test/`. `SECURITY DEFINER` es una propuesta para la consulta restringida, sujeta a la resolución de D-05.
+  - **Componentes** `apps/api/src/modules/platform/identity/`, rutinas de privilegios acotados bajo D-05, migraciones y `apps/api/test/auth.integration.mjs`.
   - **Completa cuando** La consulta exacta y Argon2id verifican credenciales sintéticas válidas e inválidas. La cuenta operativa solo puede ejecutar las operaciones aprobadas de identidad y los hashes quedan fuera de las respuestas y logs.
 
-- [ ] 8. Aprovisionar al primer Super Administrador
-  - **Depende de** Tareas 2 y 7, y alta inicial aprobada en D-02 y D-03. Aplicar los campos de auditoría decididos en D-05.
+- [x] 8. Aprovisionar al primer Super Administrador
+  - **Depende de** Tareas 2 y 7 y del procedimiento inicial aprobado en D-03. Aplica la auditoría mínima de D-05.
   - **Requisitos** [RI-02](requirements.md#ri-02-aprovisionamiento-y-membresías) CA-02.1 y [RI-07](requirements.md#ri-07-auditoría-y-datos-de-prueba) CA-07.1.
   - **Componentes** Inicialización controlada de Plataforma, servicio de credenciales, registro de auditoría y `apps/api/test/`.
   - **Completa cuando** La inicialización autorizada produce una sola alta y una evidencia auditable. Repetición, concurrencia y fallo parcial conservan un estado consistente, con secretos fuera del repositorio y de los registros.
 
-- [ ] 9. Implementar el ciclo de sesión y la revocación
+- [x] 9. Implementar el ciclo de sesión y la revocación
   - **Depende de** Tarea 7 y D-04 y D-05 en lo relativo al ciclo de sesión.
   - **Requisitos** [RI-04](requirements.md#ri-04-sesiones-y-revocación) CA-04.1 a CA-04.3.
   - **Componentes** Modelo `Sesion` de 1B.2, servicio de sesiones en `apps/api/src/modules/platform/identity/` y cambios de persistencia que se aprueben en D-04 y D-05.
   - **Completa cuando** Las pruebas verifican huella única, ámbitos, FK compuesta, caducidad, revocación, rotación y rechazo de una membresía de otra cuenta de la misma junta. Repetir con desactivación y reactivación de cuenta, membresía y junta.
 
-- [ ] 10. Resolver el ámbito a partir de una sesión verificada
+- [x] 10. Resolver el ámbito a partir de una sesión verificada
   - **Depende de** Tareas 5 y 9 y frontera de proyección aprobada en D-05.
   - **Requisitos** CA-03.4, CA-04.2 y [RI-06](requirements.md#ri-06-aislamiento-rls-y-credenciales) CA-06.1 a CA-06.5.
   - **Componentes** Resolver de contexto de Plataforma, proyecciones y concesiones SQL que se aprueben, más `apps/api/test/`.
   - **Completa cuando** El selector devuelve solo las membresías elegibles de la cuenta de una sesión válida. Una cuenta con A y B puede elegir cada junta, opera en una por sesión y no arrastra el estado de la anterior. Las pruebas cubren permiso de ejecución, sesión inválida, error y ausencia de contexto residual.
 
-- [ ] 11. Exponer autenticación y transiciones de sesión por REST
+- [x] 11. Exponer autenticación y transiciones de sesión por REST
   - **Depende de** Tareas 7, 9 y 10 y reglas de credenciales, frecuencia, cookie y CSRF aprobadas en D-03 y D-04.
   - **Requisitos** [RI-03](requirements.md#ri-03-autenticación) CA-03.1 a CA-03.4 y [RI-04](requirements.md#ri-04-sesiones-y-revocación) CA-04.1 a CA-04.4.
   - **Componentes** Controladores de `/api/v1/auth/`, servicio de sesiones y pruebas HTTP en `apps/api/test/`.
-  - **Completa cuando** Inicio, cambio de clave inicial, selección, cambio de junta y cierre conservan el ámbito validado. Las pruebas HTTP verifican cookie, CSRF y errores sin enumeración, además de caducidad, límite de intentos y reutilización de tokens revocados.
+  - **Completa cuando** Inicio, cambio de clave inicial para cuentas marcadas, selección, cambio de junta y cierre respetan el ámbito validado. Las pruebas HTTP verifican cookie, CSRF, errores sin enumeración, caducidad, límite de intentos y rechazo de tokens revocados.
 
-- [ ] 12. Aplicar permisos por ámbito, rol y titularidad
+- [x] 12. Aplicar permisos por ámbito, rol y titularidad
   - **Depende de** Tareas 5, 10 y 11 y aprobación de D-05.
   - **Requisitos** [RI-05](requirements.md#ri-05-autorización-y-titularidad) CA-05.1 a CA-05.4, CA-06.1 y CA-07.2.
-  - **Componentes** Guardas en `apps/api/src/core/`, políticas de Plataforma y contratos de acceso para RF-02, RF-32 y RF-33.
-  - **Completa cuando** Las pruebas de servicio e integración demuestran permisos positivos y negativos de plataforma y junta, y acceso exclusivo de A1 y A2 a sus propios recursos. Verifican que filtrado, detalle y escritura rechazan cruce entre A y B. Los casos funcionales de cada módulo incorporan después los escenarios de sus canales auxiliares.
+  - **Componentes** Guardas de identidad, unidad de trabajo Prisma y consulta de membresía propia. RF-02, RF-32 y RF-33 conservan sus contratos funcionales posteriores.
+  - **Completa cuando** Las pruebas demuestran permisos positivos y negativos de plataforma y junta. Las cuentas A1 y A2 solo obtienen su propia membresía. Una sesión de A es rechazada cuando solicita B, incluso si la cuenta también pertenece a B. Las pruebas de detalle, escritura y canales de recursos de negocio se incorporan con cada módulo.
+
+### Evidencia de 1B.3
+
+| Criterios                                      | Comprobación de 1B.3                                                                                                                                                 |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CA-02.1 y parte de CA-07.1                     | Arranque por CLI concurrente e idempotente y evento de alta único.                                                                                                   |
+| CA-03.1, CA-03.2, parte de CA-03.3 y CA-03.4   | Credenciales Argon2id, respuesta uniforme, límites de intentos, cambio obligatorio de credencial ya asignada y selector de juntas propias activas.                   |
+| CA-04.1 a CA-04.4                              | Cookie, huella, caducidad absoluta y por inactividad, CSRF, revocación, carrera de rotación y cambios de estado o rol.                                               |
+| Parte de CA-05.1 a CA-05.4 y CA-06.1 a CA-06.5 | Roles, separación de ámbitos, membresía propia, rechazo de juntas ajenas a la cuenta y de juntas propias fuera de la sesión, y permisos efectivos del rol operativo. |
+
+[Suite HTTP y de privilegios de 1B.3](../../../apps/api/test/auth.integration.mjs). Los flujos de alta y entrega de credenciales, recuperación, permisos por recurso de negocio y catálogo final de auditoría se mantienen en tareas posteriores.
+
+## Tareas funcionales posteriores
 
 - [ ] 13. Habilitar alta de Junta por Plataforma
   - **Depende de** Tareas 8 y 12 y aprobación del alcance y campos de D-01 y D-02.

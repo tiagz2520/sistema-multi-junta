@@ -70,6 +70,20 @@ Con PostgreSQL aprovisionado, ejecuta `npm run build` y `npm run test:db` para v
 
 `npm run test:db:identity` verifica restricciones y aislamiento con PostgreSQL real. Requiere una base de pruebas dedicada cuyo nombre empiece por `multi_junta_test_`, roles aprovisionados, las migraciones aplicadas y la API compilada. Exporta `APP_DATABASE_URL` con el rol operativo, `MIGRATION_DATABASE_URL` con el migrador e `IDENTITY_TEST_ADMIN_URL` con un superusuario exclusivo de la base de pruebas. Las tres URLs deben apuntar a la misma base. La suite usa contextos y datos sintéticos y revoca sus permisos temporales al finalizar. [Configuración de la suite en CI](.github/workflows/ci.yml)
 
+`npm run test:db:auth` usa una base aislada con la misma configuración. Verifica los flujos HTTP, caducidad y revocación, el alcance por junta, CSRF y los permisos efectivos de las rutinas.
+
+## Autenticación y sesión
+
+Para actualizar desde 1B.2, ejecuta `docker compose run --rm --no-deps postgres-roles` y después aplica las migraciones con `npm exec --workspace @multi-junta/api -- prisma migrate deploy`. El aprovisionamiento crea `multi_junta_identity` como rol interno sin inicio de sesión. No hay una tercera credencial de conexión para NestJS.
+
+Compila la API con `npm run build -w @multi-junta/api`. Para inicializar el primer Super Administrador, ejecuta `npm run auth:bootstrap` como operador con `MIGRATION_DATABASE_URL` y proporciona `BOOTSTRAP_SUPER_ADMIN_USERNAME` y `BOOTSTRAP_SUPER_ADMIN_PASSWORD` al entorno del proceso desde un canal seguro. Usa una contraseña de al menos 12 caracteres y hasta 256 bytes. Retira esas variables del entorno de operación al terminar. La ejecución repetida no crea otra cuenta. Si un nombre existente impide el alta, la transacción cancela también el evento de auditoría.
+
+Configura `AUTH_ORIGIN` con el origen exacto del navegador. Por defecto apunta a `http://127.0.0.1:5173`. En producción utiliza HTTPS y sirve web y API en ese origen. `AUTH_IDLE_SECONDS` y `AUTH_ABSOLUTE_SECONDS` controlan los vencimientos y sus valores iniciales son 1800 y 43200 segundos respectivamente.
+
+El inicio admite hasta 5 intentos por usuario y 60 por IP de conexión en ventanas de 15 minutos. Con un proxy inverso, las solicitudes pueden compartir el límite de la IP del proxy. Si el despliegue necesita un límite por IP de cliente, aplícalo también en el proxy que recibe el tráfico externo.
+
+Para iniciar sesión, el cliente envía JSON con `usuario` y `contrasena` a `POST /api/v1/auth/iniciar-sesion` y la cabecera `X-CSRF-Token: inicio`. Usa las cookies para las llamadas posteriores y envía el `csrfToken` recibido como `X-CSRF-Token` en las mutaciones. `GET /api/v1/auth/sesion` recupera ese valor para la sesión vigente. Tras cambiar de contexto, usa la nueva cookie y el nuevo valor CSRF. Las solicitudes de navegador incluyen el `Origin` del despliegue. [Contratos de identidad](.kiro/specs/identidad-y-aislamiento/design.md#endpoints-rest)
+
 ## Estructura
 
 - `apps/web/` contiene React, TypeScript, Vite y Tailwind CSS.
@@ -78,4 +92,4 @@ Con PostgreSQL aprovisionado, ejecuta `npm run build` y `npm run test:db` para v
 - `tests/e2e/` contiene la prueba de comunicación y `ops/postgres/` contiene el aprovisionamiento de roles.
 - `.kiro/specs/` contiene la especificación de identidad y aislamiento. [AGENTS.md](AGENTS.md) recoge las decisiones y reglas de desarrollo.
 
-1B.2 incluye el esquema de sesiones y el aislamiento de persistencia. La autenticación, la emisión y revocación de sesiones, la autorización por rol y titularidad y las funcionalidades de negocio corresponden a incrementos posteriores.
+1B.3 incluye la autenticación, las sesiones y el acceso a la membresía propia. Los permisos por recurso de negocio y los flujos de alta y recuperación de acceso corresponden a incrementos posteriores.

@@ -4,6 +4,6 @@ import { TenantUnitOfWork } from './tenant-unit-of-work.js';
 
 @Module({
   providers: [PrismaService, TenantUnitOfWork],
-  exports: [TenantUnitOfWork],
+  exports: [PrismaService, TenantUnitOfWork],
 })
 export class PrismaModule {}

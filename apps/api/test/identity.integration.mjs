@@ -644,6 +644,10 @@ test('modelo y aislamiento de identidad con PostgreSQL real', async (context) =>
         'la junta autorizada puede operar sus filas y las escrituras cruzadas se deniegan',
         async () => {
           const memberships = new MembershipRepository();
+          const { versionAcceso } = await admin.membresia.findUniqueOrThrow({
+            where: { id: memberA },
+            select: { versionAcceso: true },
+          });
           await work.run(juntaA, async (tx) => {
             await assertVisible(tx, data, juntaA);
             assert.deepEqual(await memberships.findById(tx, juntaA, memberA), {
@@ -652,7 +656,7 @@ test('modelo y aislamiento de identidad con PostgreSQL real', async (context) =>
               cuentaId: accountA,
               rolCodigo: 'SOCIO',
               estado: 'ACTIVA',
-              versionAcceso: 1,
+              versionAcceso,
             });
             assert.equal(await memberships.findById(tx, juntaB, memberB), null);
             assert.equal(
@@ -728,6 +732,10 @@ test('modelo y aislamiento de identidad con PostgreSQL real', async (context) =>
             /UUID/,
           );
           assert.equal(called, false);
+          const { versionAcceso } = await admin.membresia.findUniqueOrThrow({
+            where: { id: memberA },
+            select: { versionAcceso: true },
+          });
           const { pid } = await connectionContext(app);
           await work.run(juntaA, async (tx) => {
             assert.deepEqual(await connectionContext(tx), {
@@ -768,7 +776,7 @@ test('modelo y aislamiento de identidad con PostgreSQL real', async (context) =>
                 where: { id: memberA },
               })
             ).versionAcceso,
-            1,
+            versionAcceso,
           );
           const pids = await Promise.all(
             [juntaA, juntaB].map((junta) =>

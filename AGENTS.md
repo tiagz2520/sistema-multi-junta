@@ -12,6 +12,7 @@
 - Las tablas operativas deben tener identificador de junta y claves foráneas que impidan relaciones entre juntas. Aplica RLS forzada con denegación sin contexto. Establece el contexto y ejecuta las consultas mediante el mismo cliente Prisma transaccional. Usa credenciales de ejecución sin `BYPASSRLS` y credenciales separadas para migraciones.
 - Aplica el ámbito de junta y la titularidad a archivos, búsquedas, cachés, exportaciones y tareas. Incluye pruebas negativas con dos juntas y con dos socios de una misma junta.
 - Implementa sesiones revocables del lado servidor, cookies `HttpOnly`, `Secure` y `SameSite` en HTTPS, protección CSRF y caducidad. Revoca el acceso cuando se desactive la cuenta o cambien sus permisos. Almacena contraseñas con Argon2id.
+- Declara la guarda de sesión y los ámbitos permitidos en cada ruta privada. Usa una lista explícita de roles en las operaciones sujetas a RBAC. Para las operaciones de junta, contrasta el identificador solicitado con la junta de la sesión antes de abrir `TenantUnitOfWork`. Protege las mutaciones por cookie con CSRF antes de validar o renovar la sesión.
 - Usa datos sintéticos en código y pruebas. Conserva los valores locales desechables en `.env.example` y las credenciales reales fuera del repositorio. Mantén archivos de referencia con datos personales fuera de cambios y publicaciones hasta su revisión.
 
 ## Especificaciones y verificación

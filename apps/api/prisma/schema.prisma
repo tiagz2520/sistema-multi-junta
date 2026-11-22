@@ -54,17 +54,18 @@ model Junta {
 }
 
 model Cuenta {
-  id                       String      @id @default(uuid()) @db.Uuid
-  nombreUsuarioNormalizado String      @unique @map("nombre_usuario_normalizado") @db.VarChar(32)
-  hashContrasena           String      @map("hash_contrasena")
-  estado                   Estado      @default(ACTIVA)
-  requiereCambioContrasena Boolean     @default(false) @map("requiere_cambio_contrasena")
-  versionAcceso            Int         @default(1) @map("version_acceso")
-  rolPlataformaCodigo      CodigoRol?  @map("rol_plataforma_codigo")
-  rolPlataformaAmbito      AmbitoRol   @default(PLATAFORMA) @map("rol_plataforma_ambito")
-  rolPlataforma            Rol?        @relation("RolPlataforma", fields: [rolPlataformaCodigo, rolPlataformaAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
+  id                       String               @id @default(uuid()) @db.Uuid
+  nombreUsuarioNormalizado String               @unique @map("nombre_usuario_normalizado") @db.VarChar(32)
+  hashContrasena           String               @map("hash_contrasena")
+  estado                   Estado               @default(ACTIVA)
+  requiereCambioContrasena Boolean              @default(false) @map("requiere_cambio_contrasena")
+  versionAcceso            Int                  @default(1) @map("version_acceso")
+  rolPlataformaCodigo      CodigoRol?           @map("rol_plataforma_codigo")
+  rolPlataformaAmbito      AmbitoRol            @default(PLATAFORMA) @map("rol_plataforma_ambito")
+  rolPlataforma            Rol?                 @relation("RolPlataforma", fields: [rolPlataformaCodigo, rolPlataformaAmbito], references: [codigo, ambito], onDelete: Restrict, onUpdate: Restrict)
   membresias               Membresia[]
   sesiones                 Sesion[]
+  auditoria                AuditoriaIdentidad[]
 
   @@map("cuenta")
 }
@@ -119,4 +120,26 @@ model Sesion {
   @@index([cuentaId])
   @@index([juntaId, membresiaId, cuentaId])
   @@map("sesion")
+}
+
+model AuditoriaIdentidad {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cuentaId   String   @map("cuenta_id") @db.Uuid
+  evento     String
+  ocurridoEn DateTime @default(now()) @map("ocurrido_en") @db.Timestamptz(3)
+  cuenta     Cuenta   @relation(fields: [cuentaId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([cuentaId, ocurridoEn])
+  @@map("auditoria_identidad")
+}
+
+model IntentoAutenticacion {
+  dimension     String
+  huella        String   @db.VarChar(64)
+  ventanaInicio DateTime @map("ventana_inicio") @db.Timestamptz(3)
+  intentos      Int
+
+  @@id([dimension, huella])
+  @@index([ventanaInicio])
+  @@map("intento_autenticacion")
 }

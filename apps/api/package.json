@@ -11,6 +11,8 @@
     "test": "npm run build && node --test test/health.e2e.test.mjs",
     "test:db": "node --env-file-if-exists=../../.env --test test/postgres.integration.mjs",
     "test:db:identity": "node --test test/identity.integration.mjs",
+    "test:db:auth": "node --test test/auth.integration.mjs",
+    "auth:bootstrap": "node --env-file-if-exists=../../.env dist/modules/platform/identity/bootstrap-super-admin.js",
     "db:generate": "prisma generate --config prisma.config.ts",
     "db:validate": "prisma validate --config prisma.config.ts"
   },
@@ -18,6 +20,7 @@
     "@nestjs/common": "^12.6.0",
     "@nestjs/core": "^12.6.0",
     "@nestjs/platform-express": "^12.6.0",
+    "@node-rs/argon2": "2.2.2",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "reflect-metadata": "^0.2.2",
