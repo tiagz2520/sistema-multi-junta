@@ -22,6 +22,23 @@ services:
       retries: 10
       start_period: 30s
 
+  postgres-roles:
+    image: postgres:18-bookworm
+    command: ['sh', '/bootstrap/provision.sh']
+    environment:
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGDATABASE: ${POSTGRES_DB:?Configura POSTGRES_DB en .env}
+      PGUSER: ${POSTGRES_USER:?Configura POSTGRES_USER en .env}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD en .env}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?Configura POSTGRES_APP_PASSWORD en .env}
+      POSTGRES_MIGRATION_PASSWORD: ${POSTGRES_MIGRATION_PASSWORD:?Configura POSTGRES_MIGRATION_PASSWORD en .env}
+    volumes:
+      - ./ops/postgres:/bootstrap:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     build:
       context: .
@@ -29,12 +46,16 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: '3000'
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGDATABASE: ${POSTGRES_DB:?Configura POSTGRES_DB en .env}
+      PGUSER: multi_junta_app
+      PGPASSWORD: ${POSTGRES_APP_PASSWORD:?Configura POSTGRES_APP_PASSWORD en .env}
     ports:
       - '127.0.0.1:${PORT:-3000}:3000'
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-roles:
+        condition: service_completed_successfully
     healthcheck:
       test:
         - CMD

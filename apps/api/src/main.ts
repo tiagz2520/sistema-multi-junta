@@ -1,11 +1,26 @@
-import { existsSync } from 'node:fs';
-import { loadEnvFile } from 'node:process';
+import { existsSync, readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
 import { createApplication } from './app.js';
 
 const envFile = new URL('../../../.env', import.meta.url);
 
 if (existsSync(envFile)) {
-  loadEnvFile(envFile);
+  const localEnv = parseEnv(readFileSync(envFile, 'utf8'));
+  const runtimeVariables = [
+    'HOST',
+    'PORT',
+    'APP_DATABASE_URL',
+    'PGHOST',
+    'PGPORT',
+    'PGDATABASE',
+    'PGUSER',
+    'PGPASSWORD',
+  ];
+  for (const key of runtimeVariables) {
+    if (process.env[key] === undefined && localEnv[key] !== undefined) {
+      process.env[key] = localEnv[key];
+    }
+  }
 }
 
 async function bootstrap() {

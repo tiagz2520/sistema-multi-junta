@@ -9,6 +9,7 @@
     "start": "node dist/main.js",
     "lint": "eslint src test prisma.config.ts",
     "test": "npm run build && node --test test/health.e2e.test.mjs",
+    "test:db": "node --env-file-if-exists=../../.env --test test/postgres.integration.mjs",
     "db:generate": "prisma generate --config prisma.config.ts",
     "db:validate": "prisma validate --config prisma.config.ts"
   },
