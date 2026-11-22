@@ -6,6 +6,8 @@ import { CommunicationsModule } from './modules/communications/communications.mo
 import { FinanceModule } from './modules/finance/finance.module.js';
 import { PlatformModule } from './modules/platform/platform.module.js';
 import { ResourcesModule } from './modules/resources/resources.module.js';
+import { SchedulesModule } from './modules/schedules/schedules.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { ResourcesModule } from './modules/resources/resources.module.js';
     FinanceModule,
     ResourcesModule,
     CommunicationsModule,
+    SchedulesModule,
+    ReportsModule,
     HealthModule,
   ],
 })
