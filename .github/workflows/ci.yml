@@ -40,5 +40,7 @@ jobs:
           npm run test:db:identity
           npm run test:db:auth
           npm run test:db:platform
+          npm run test:db:operations
           npm exec -- playwright install --with-deps --only-shell chromium
           npm run test:e2e:platform
+          npm run test:e2e:operations

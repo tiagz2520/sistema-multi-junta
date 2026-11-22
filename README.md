@@ -101,3 +101,19 @@ Abre la web en `http://127.0.0.1:5173` y accede con la cuenta de plataforma inic
 `npm run test:db:platform` comprueba los contratos y privilegios del incremento con la misma base aislada de `test:db:auth`. Con las dos aplicaciones compiladas, instala el navegador mediante `npm exec -- playwright install --only-shell chromium` y ejecuta `npm run test:e2e:platform`, que inicia web y API locales con la base de pruebas y recorre el flujo desde un navegador real. [Especificación 1C](.kiro/specs/gestion-plataforma-juntas/requirements.md)
 
 El alta ordinaria de miembros depende del padrón. La vinculación de cuentas existentes y la recuperación de credenciales permanecen pendientes.
+
+## Núcleo operativo y financiero
+
+Aplica las migraciones de PostgreSQL con el rol migrador después de ejecutar `postgres-roles`. El panel local ofrece opciones según la membresía de la sesión. Administración mantiene sectores y tarifas. Secretaría mantiene el padrón, actividades, asistencias, justificaciones y propiedades. Tesorería registra pagos, gastos, inventario y activos. Secretaría y Tesorería pueden generar multas a partir de faltas elegibles.
+
+Configura la tarifa de cada actividad antes de generar multas. El sistema usa la fecha de la actividad en Ecuador y guarda el importe aplicado. Un pago de obligación debe cubrir su saldo completo. La aplicación emite el comprobante interno junto con el pago y conserva su número si se anula. Usa el respaldo de gasto y las fotos de propiedad en los tipos y tamaños admitidos por cada formulario. [Administración comunitaria](.kiro/specs/administracion-comunitaria/design.md) · [Finanzas y recursos](.kiro/specs/finanzas-recursos/design.md)
+
+### Demostración local
+
+Crea y aprovisiona una instancia aislada con una base cuyo nombre empiece por `multi_junta_demo_`. Aplica sus migraciones y compila la API. Configura `APP_DATABASE_URL` con el rol operativo de esa base, `DEMO_ADMIN_DATABASE_URL` con su cuenta administrativa de aprovisionamiento y `DEMO_PASSWORD` con una contraseña exclusivamente ficticia de al menos 12 caracteres. Ejecuta `npm run demo:operativo` desde la raíz. El proceso solo admite una base de demostración en loopback, rechaza producción y se puede repetir conservando los datos. La cuenta de ejecución de NestJS sigue siendo `multi_junta_app`.
+
+El script imprime las cuentas de demostración. Abre la web conectada al mismo entorno para operar como `demo-rio-admin`, `demo-rio-secretaria`, `demo-rio-tesoreria` o sus equivalentes `demo-valle-*`. Los nombres, tarifas y movimientos iniciales son sintéticos.
+
+### Verificación operativa
+
+Corre `npm run test:db:operations` con las mismas URLs de la base aislada descrita para `test:db:auth`. Compila la web y utiliza `npm run test:e2e:operations` con Chromium de Playwright para recorrer el padrón, la minga, la justificación, la multa, el pago, el PDF y el inventario.

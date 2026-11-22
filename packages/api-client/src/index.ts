@@ -48,12 +48,15 @@ export interface Alta {
   contrasenaTemporal: string;
 }
 
-type Solicitud = {
-  method?: 'POST' | 'PATCH';
+export type Solicitud = {
+  method?: 'POST' | 'PATCH' | 'PUT';
   body?: object;
   csrfToken?: string;
   signal?: AbortSignal;
+  responseType?: 'blob';
 };
+
+export type ApiRequest = <T>(path: string, options?: Solicitud) => Promise<T>;
 
 const statusMessages: Partial<Record<number, string>> = {
   400: 'Revisa los datos ingresados.',
@@ -80,10 +83,13 @@ export function createApiClient(
   fetcher: typeof fetch = (input, init) => globalThis.fetch(input, init),
 ) {
   async function request<T>(path: string, options: Solicitud = {}): Promise<T> {
-    const { method = 'GET', body, csrfToken, signal } = options;
-    const headers = new Headers({ Accept: 'application/json' });
+    const { method = 'GET', body, csrfToken, signal, responseType } = options;
+    const multipart = body instanceof FormData;
+    const headers = new Headers({
+      Accept: responseType === 'blob' ? '*/*' : 'application/json',
+    });
 
-    if (body !== undefined) {
+    if (body !== undefined && !multipart) {
       headers.set('Content-Type', 'application/json');
     }
     if (csrfToken !== undefined) {
@@ -95,7 +101,11 @@ export function createApiClient(
       response = await fetcher(`/api/v1${path}`, {
         method,
         headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: multipart
+          ? body
+          : body === undefined
+            ? undefined
+            : JSON.stringify(body),
         signal,
         credentials: 'same-origin',
         cache: 'no-store',
@@ -127,6 +137,7 @@ export function createApiClient(
     if (response.status === 204) return undefined as T;
 
     try {
+      if (responseType === 'blob') return (await response.blob()) as T;
       return (await response.json()) as T;
     } catch {
       throw new ApiError(502, 'El sistema devolvió una respuesta inválida.');
@@ -138,6 +149,9 @@ export function createApiClient(
   const localJunta = (id: string) => `/juntas/${encodeURIComponent(id)}`;
 
   return {
+    administration: administrationApi(request),
+    finance: financeApi(request),
+    resources: resourcesApi(request),
     auth: {
       session: (signal?: AbortSignal) =>
         request<Sesion>('/auth/sesion', { signal }),
@@ -230,3 +244,6 @@ export function createApiClient(
 }
 
 export const api = createApiClient();
+import { administrationApi, financeApi, resourcesApi } from './community.js';
+
+export * from './community.js';

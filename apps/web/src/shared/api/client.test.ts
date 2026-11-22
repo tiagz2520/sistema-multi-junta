@@ -77,4 +77,52 @@ describe('cliente REST', () => {
       new ApiError(401, 'Sin sesión.'),
     );
   });
+
+  it('envía respaldo multipart y deja que el navegador añada el boundary', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json({ id: 'gasto' }));
+    const form = new FormData();
+    form.set('concepto', 'Compra de prueba');
+    form.set(
+      'archivo',
+      new Blob(['%PDF-ficticio'], { type: 'application/pdf' }),
+      'prueba.pdf',
+    );
+
+    await createApiClient(fetcher).finance.makeExpense(
+      'junta-a',
+      form,
+      session.csrfToken,
+    );
+
+    const [path, options] = fetcher.mock.calls[0];
+    expect(path).toBe('/api/v1/juntas/junta-a/finanzas/gastos');
+    expect(options).toMatchObject({
+      method: 'POST',
+      body: form,
+      credentials: 'same-origin',
+    });
+    const headers = new Headers(options?.headers);
+    expect(headers.has('Content-Type')).toBe(false);
+    expect(headers.get('X-CSRF-Token')).toBe(session.csrfToken);
+  });
+
+  it('descarga el comprobante como Blob desde el ámbito indicado', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response('%PDF-ficticio', {
+        headers: { 'Content-Type': 'application/pdf' },
+      }),
+    );
+    const blob = await createApiClient(fetcher).finance.receipt(
+      'junta-a',
+      'pago-a',
+    );
+
+    expect(blob.type).toBe('application/pdf');
+    await expect(blob.text()).resolves.toBe('%PDF-ficticio');
+    expect(fetcher.mock.calls[0][0]).toBe(
+      '/api/v1/juntas/junta-a/finanzas/pagos/pago-a/comprobante',
+    );
+  });
 });
