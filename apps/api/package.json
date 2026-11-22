@@ -13,7 +13,7 @@
     "test:db:identity": "node --test test/identity.integration.mjs",
     "test:db:auth": "node --test test/auth.integration.mjs",
     "test:db:platform": "node --test test/platform.integration.mjs",
-    "test:db:operations": "node --test --test-concurrency=1 test/administration.integration.mjs test/finance.integration.mjs test/resources.integration.mjs test/final.integration.mjs",
+    "test:db:operations": "node --test --test-concurrency=1 test/administration.integration.mjs test/finance.integration.mjs test/resources.integration.mjs test/final.integration.mjs test/portal-properties.integration.mjs",
     "auth:bootstrap": "node --env-file-if-exists=../../.env dist/modules/platform/identity/bootstrap-super-admin.js",
     "db:generate": "prisma generate --config prisma.config.ts",
     "db:validate": "prisma validate --config prisma.config.ts"

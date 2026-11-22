@@ -37,6 +37,8 @@ jobs:
           docker compose --env-file .env.example -p multi-junta-ci run --rm --no-deps postgres-roles
           npm run test:db
           npm exec --workspace @multi-junta/api -- prisma migrate deploy
+          # El aprovisionamiento debe seguir siendo seguro e idempotente sobre una base ya migrada.
+          docker compose --env-file .env.example -p multi-junta-ci run --rm --no-deps postgres-roles
           npm run test:db:identity
           npm run test:db:auth
           npm run test:db:platform
