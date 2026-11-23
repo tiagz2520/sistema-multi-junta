@@ -15,6 +15,8 @@ Los identificadores RF corresponden a los documentos originales del proyecto. La
 | RF-12                      | Horarios semanales por sector                  | [Horarios](../../.kiro/specs/reportes-horarios/requirements.md)                                                                                    | `apps/api/src/modules/schedules/`                         | `apps/api/test/final.integration.mjs`                                   |
 | RF-24                      | Reportes administrativos y financieros         | [Reportes](../../.kiro/specs/reportes-horarios/requirements.md)                                                                                    | `apps/api/src/modules/reports/`                           | `apps/api/test/final.integration.mjs`, `tests/e2e/final.test.mjs`       |
 
+Los 88 criterios de aceptación EARS de las 22 historias de usuario, identificados como `CA-HU.n`, están en [criterios-ears.md](criterios-ears.md).
+
 ## Cobertura transversal
 
 - Autenticación, cookies HttpOnly, CSRF, caducidad, cambio de ámbito y revocación: `apps/api/test/auth.integration.mjs`.

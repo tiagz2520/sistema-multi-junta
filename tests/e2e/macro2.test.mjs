@@ -186,7 +186,7 @@ test(
     const treasury = await enter(browser, origin, a.tesoreria, a);
     await button(treasury, 'Multas').click();
     await button(treasury, 'Generar multas').click();
-    await treasury.getByRole('combobox').selectOption(activity.id);
+    await treasury.getByLabel(/Actividad cerrada/).selectOption(activity.id);
     const checks = treasury.getByRole('checkbox');
     await checks.first().waitFor();
     assert.equal(await checks.count(), 1);
